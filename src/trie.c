@@ -18,7 +18,7 @@ TrieNode *trie_alloc_node(void) {
   return &trie_node_pool[trie_node_pool_count++];
 }
 
-void trie_push_text(TrieNode *root, const char *text) {
+void trie_push_text(TrieNode *root, const char *text, void *user_ptr) {
   if (text == NULL || *text == '\0') {
     return;
   }
@@ -32,6 +32,7 @@ void trie_push_text(TrieNode *root, const char *text) {
   }
 
   root->children[index]->character = *text;
+  root->children[index]->user_ptr = user_ptr;
   
   if (*(text + 1) == 0) {
     root->children[index]->word = true;

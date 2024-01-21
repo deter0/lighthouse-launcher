@@ -15,6 +15,7 @@ typedef struct TrieNode TrieNode;
 struct TrieNode {
   bool word;
   char character;
+  void *user_ptr;
   struct TrieNode *children[256];
   TrieNode *parent;
 };
