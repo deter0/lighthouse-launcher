@@ -6,26 +6,19 @@
 
 #include "fruits.h"
 
+#include "./trie.h"
+
 #define ARRAY_LEN(xs) (sizeof(xs)/sizeof(xs[0]))
 
-typedef struct Node Node;
-struct Node {
-  bool word;
-  char character;
-  struct Node *children[256];
-  Node *parent;
-};
+static TrieNode trie_node_pool[TRIE_NODE_POOL_CAP] = {0};
+static size_t trie_node_pool_count = 0;
 
-#define NODE_POOL_CAP 1024
-Node node_pool[NODE_POOL_CAP] = {0};
-size_t node_pool_count = 0;
-
-Node *alloc_node() {
-  assert(node_pool_count < NODE_POOL_CAP);
-  return &node_pool[node_pool_count++];
+TrieNode *trie_alloc_node(void) {
+  assert(trie_node_pool_count < TRIE_NODE_POOL_CAP);
+  return &trie_node_pool[trie_node_pool_count++];
 }
 
-void insert_text(Node *root, const char *text) {
+void trie_push_text(TrieNode *root, const char *text) {
   if (text == NULL || *text == '\0') {
     return;
   }
@@ -34,7 +27,7 @@ void insert_text(Node *root, const char *text) {
   size_t index = (size_t) *text;
 
   if (root->children[index] == NULL) {
-    root->children[index] = alloc_node();
+    root->children[index] = trie_alloc_node();
     root->children[index]->parent = root;
   }
 
@@ -43,11 +36,10 @@ void insert_text(Node *root, const char *text) {
   if (*(text + 1) == 0) {
     root->children[index]->word = true;
   }
-  insert_text(root->children[index], text + 1);
+  trie_push_text(root->children[index], text + 1);
 }
 
-void strrev(char* str)
-{
+static void strrev(char* str) {
   // if the string is empty
   if (!str) {
     return;
@@ -66,15 +58,8 @@ void strrev(char* str)
   }
 }
 
-#define MAX_WORDS_PER_POOL 128
-#define MAX_WORD_LEN 64
-typedef struct {
-  char words[MAX_WORD_LEN][MAX_WORDS_PER_POOL];
-  size_t words_count;
-} WordPool;
-
-void collect_word(Node *node, char *word_out) {
-  Node *working_node = node;
+static void collect_word(TrieNode *node, char *word_out) {
+  TrieNode *working_node = node;
 
   size_t word_size = strlen(word_out);
   
@@ -90,13 +75,13 @@ void collect_word(Node *node, char *word_out) {
   word_out[word_size + 1] = 0;
 }
 
-void search_down_for_words(Node *root, WordPool *word_pool) {
+static void search_down_for_words(TrieNode *root, WordPool *word_pool) {
   if (root->word == true) {
     char word[MAX_WORD_LEN] = { 0 };
     collect_word(root, word);
     
     memcpy(word_pool->words + (word_pool->words_count++), word, MAX_WORD_LEN);
-    if (word_pool->words_count >= MAX_WORDS_PER_POOL) {
+    if (word_pool->words_count >= MAX_WORDS_PER_TRIE_POOL) {
       printf("Max search reached.\n");
       return;
     }
@@ -109,11 +94,11 @@ void search_down_for_words(Node *root, WordPool *word_pool) {
   }
 }
 
-void search_trie(Node *root, const char *text, WordPool *search_results) {
-  Node *furthest_node = root;
+void trie_search(TrieNode *root, const char *text, WordPool *search_results) {
+  TrieNode *furthest_node = root;
 
   for (size_t i = 0; i < strlen(text); i++) {
-    Node *child = furthest_node->children[(size_t)text[i]];
+    TrieNode *child = furthest_node->children[(size_t)text[i]];
     if (child == NULL) {
       break;
     } else {
@@ -124,12 +109,12 @@ void search_trie(Node *root, const char *text, WordPool *search_results) {
   search_down_for_words(furthest_node, search_results);
 }
 
-void dump_dot(Node *root) {
-  size_t index = root - node_pool;
+static void dump_dot(TrieNode *root) {
+  size_t index = root - trie_node_pool;
 
   for (size_t i = 0; i < ARRAY_LEN(root->children); i++) {
     if (root->children[i] != NULL) {
-      size_t child_index = root->children[i] - node_pool;
+      size_t child_index = root->children[i] - trie_node_pool;
       printf("    Node_%zu [label=\"%c\"]\n", child_index, (char)i);
       printf("    Node_%zu -> Node_%zu [label=\"%s\"]\n", index, child_index, root->children[i]->word ? "WORD" : (char[2]){i, 0});
       dump_dot(root->children[i]);
@@ -140,12 +125,12 @@ void dump_dot(Node *root) {
 #ifdef TRIE_TESTING
 
 int main(void) {
-  Node *root = alloc_node();
+  TrieNode *root = trie_alloc_node();
 
   // insert_text(root, "hello");
   // insert_text(root, "helium");
   for (size_t i = 0; i < fruits_count; ++i) {
-    insert_text(root, fruits[i]);
+    trie_push_text(root, fruits[i]);
   }
 
   assert(root->children['A']);
@@ -165,7 +150,7 @@ int main(void) {
 
   {
     WordPool search_results = { 0 };
-    search_trie(root, "A", &search_results);
+    trie_search(root, "A", &search_results);
 
     assert(search_results.words_count == 3);
     assert(strcmp(search_results.words[0], "Apple") == 0);
@@ -180,7 +165,7 @@ int main(void) {
   {
     WordPool search_results = { 0 };
     
-    search_trie(root, "Apple", &search_results);
+    trie_search(root, "Apple", &search_results);
     assert(search_results.words_count == 1);
 
     printf("%s\n", search_results.words[0]);
