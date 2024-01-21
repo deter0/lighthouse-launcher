@@ -26,6 +26,6 @@ typedef struct {
 } WordPool;
 
 TrieNode *trie_alloc_node(void);
-void trie_push_text(TrieNode *root, const char *text);
+void trie_push_text(TrieNode *root, const char *text, void *user_ptr);
 void trie_search(TrieNode *root, const char *text, WordPool *search_results);
 

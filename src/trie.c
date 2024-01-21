@@ -32,12 +32,12 @@ void trie_push_text(TrieNode *root, const char *text, void *user_ptr) {
   }
 
   root->children[index]->character = *text;
-  root->children[index]->user_ptr = user_ptr;
   
   if (*(text + 1) == 0) {
+    root->children[index]->user_ptr = user_ptr;
     root->children[index]->word = true;
   }
-  trie_push_text(root->children[index], text + 1);
+  trie_push_text(root->children[index], text + 1, user_ptr);
 }
 
 static void strrev(char* str) {
@@ -110,7 +110,7 @@ void trie_search(TrieNode *root, const char *text, WordPool *search_results) {
   search_down_for_words(furthest_node, search_results);
 }
 
-static void dump_dot(TrieNode *root) {
+static __attribute__((unused)) void dump_dot(TrieNode *root) {
   size_t index = root - trie_node_pool;
 
   for (size_t i = 0; i < ARRAY_LEN(root->children); i++) {
@@ -131,7 +131,7 @@ int main(void) {
   // insert_text(root, "hello");
   // insert_text(root, "helium");
   for (size_t i = 0; i < fruits_count; ++i) {
-    trie_push_text(root, fruits[i]);
+    trie_push_text(root, fruits[i], NULL);
   }
 
   assert(root->children['A']);
