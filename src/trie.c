@@ -67,52 +67,35 @@ void strrev(char* str)
 }
 
 #define MAX_WORDS_PER_POOL 128
+#define MAX_WORD_LEN 64
 typedef struct {
-  char *words[MAX_WORDS_PER_POOL];
+  char words[MAX_WORD_LEN][MAX_WORDS_PER_POOL];
   size_t words_count;
 } WordPool;
 
-void delete_word_pool(WordPool *word_pool) {
-  for (size_t i = 0; i < word_pool->words_count; i++) {
-    free(word_pool->words[i]);
-  }
-}
-
-char *collect_word(Node *node) {
+void collect_word(Node *node, char *word_out) {
   Node *working_node = node;
 
-  size_t word_alloc = 0;
+  size_t word_size = strlen(word_out);
   
-  while (working_node->parent != NULL) {
-    word_alloc++;
-    working_node = working_node->parent;
-  }
-
-  if (word_alloc <= 0) { return NULL; }
-  
-  char *word_buffer = malloc(word_alloc + 1);
-  size_t word_size = 0;
-  
-  assert(word_buffer != NULL);
-
   working_node = node;
   while (working_node->parent != NULL) {
-    assert(word_size < word_alloc);
-    word_buffer[word_size++] = working_node->character;
+    assert(word_size < MAX_WORD_LEN);
+    word_out[word_size++] = working_node->character;
     working_node = working_node->parent;
   }
 
-  strrev(word_buffer);
+  strrev(word_out);
 
-  word_buffer[word_alloc] = 0;
-
-  return word_buffer;
+  word_out[word_size + 1] = 0;
 }
 
 void search_down_for_words(Node *root, WordPool *word_pool) {
   if (root->word == true) {
-    char *word = collect_word(root);
-    word_pool->words[word_pool->words_count++] = word;
+    char word[MAX_WORD_LEN] = { 0 };
+    collect_word(root, word);
+    
+    memcpy(word_pool->words + (word_pool->words_count++), word, MAX_WORD_LEN);
     if (word_pool->words_count >= MAX_WORDS_PER_POOL) {
       printf("Max search reached.\n");
       return;
@@ -154,6 +137,8 @@ void dump_dot(Node *root) {
   }
 }
 
+#ifdef TRIE_TESTING
+
 int main(void) {
   Node *root = alloc_node();
 
@@ -173,20 +158,36 @@ int main(void) {
   //dump_dot(root);
   //printf("}\n");
 
-  char *word = collect_word(root->children['A']->children['p']->children['p']->children['l']->children['e']);
+  char word[MAX_WORD_LEN];
+  collect_word(root->children['A']->children['p']->children['p']->children['l']->children['e'], word);
   assert(strcmp(word, "Apple") == 0);
   assert(strlen(word) == 5);
-  free(word);
 
-  WordPool search_results = { 0 };
-  search_trie(root, "C", &search_results);
+  {
+    WordPool search_results = { 0 };
+    search_trie(root, "A", &search_results);
 
-  for (size_t i = 0; i < search_results.words_count; i++) {
-    printf("Result: %s\n", search_results.words[i]);
+    assert(search_results.words_count == 3);
+    assert(strcmp(search_results.words[0], "Apple") == 0);
+    assert(strcmp(search_results.words[1], "Apricot") == 0);
+    assert(strcmp(search_results.words[2], "Avocado") == 0);
+    
+    for (size_t i = 0; i < search_results.words_count; i++) {
+      printf("Result: %s\n", search_results.words[i]);
+    }
   }
 
-  delete_word_pool(&search_results);
+  {
+    WordPool search_results = { 0 };
+    
+    search_trie(root, "Apple", &search_results);
+    assert(search_results.words_count == 1);
+
+    printf("%s\n", search_results.words[0]);
+    assert(strcmp(search_results.words[0], "Apple") == 0);
+  }
   
   return 0;
 }
 
+#endif
