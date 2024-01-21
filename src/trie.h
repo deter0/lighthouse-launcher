@@ -21,7 +21,12 @@ struct TrieNode {
 };
 
 typedef struct {
-  char words[MAX_WORD_LEN][MAX_WORDS_PER_TRIE_POOL];
+  char word[MAX_WORD_LEN];
+  void *user_ptr;
+} TrieWord;
+
+typedef struct {
+  TrieWord words[MAX_WORDS_PER_TRIE_POOL];
   size_t words_count;
 } WordPool;
 

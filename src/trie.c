@@ -81,7 +81,8 @@ static void search_down_for_words(TrieNode *root, WordPool *word_pool) {
     char word[MAX_WORD_LEN] = { 0 };
     collect_word(root, word);
     
-    memcpy(word_pool->words + (word_pool->words_count++), word, MAX_WORD_LEN);
+    memcpy(word_pool->words[word_pool->words_count].word, word, MAX_WORD_LEN);
+    word_pool->words[word_pool->words_count++].user_ptr = root->user_ptr;
     if (word_pool->words_count >= MAX_WORDS_PER_TRIE_POOL) {
       printf("Max search reached.\n");
       return;
@@ -134,6 +135,11 @@ int main(void) {
     trie_push_text(root, fruits[i], NULL);
   }
 
+  int *test_ptr = malloc(sizeof(int));
+  (*test_ptr) = 69;
+  
+  trie_push_text(root, "gizmer", (void*)test_ptr);
+
   assert(root->children['A']);
   assert(!root->children['z']);
   assert(root->children['A']->children['p']->children['p']->character == 'p');
@@ -154,12 +160,12 @@ int main(void) {
     trie_search(root, "A", &search_results);
 
     assert(search_results.words_count == 3);
-    assert(strcmp(search_results.words[0], "Apple") == 0);
-    assert(strcmp(search_results.words[1], "Apricot") == 0);
-    assert(strcmp(search_results.words[2], "Avocado") == 0);
+    assert(strcmp(search_results.words[0].word, "Apple") == 0);
+    assert(strcmp(search_results.words[1].word, "Apricot") == 0);
+    assert(strcmp(search_results.words[2].word, "Avocado") == 0);
     
     for (size_t i = 0; i < search_results.words_count; i++) {
-      printf("Result: %s\n", search_results.words[i]);
+      printf("Result: %s\n", search_results.words[i].word);
     }
   }
 
@@ -169,8 +175,20 @@ int main(void) {
     trie_search(root, "Apple", &search_results);
     assert(search_results.words_count == 1);
 
-    printf("%s\n", search_results.words[0]);
-    assert(strcmp(search_results.words[0], "Apple") == 0);
+    printf("%s\n", search_results.words[0].word);
+    assert(strcmp(search_results.words[0].word, "Apple") == 0);
+  }
+
+  {
+    WordPool search_results = { 0 };
+    
+    trie_search(root, "gizmer", &search_results);
+    printf("%s\n", search_results.words[0].word);
+    assert(strcmp(search_results.words[0].word, "gizmer") == 0);
+
+    int *user_ptr = (int*)search_results.words[0].user_ptr;
+    assert(user_ptr != NULL);
+    assert(*user_ptr == 69);
   }
   
   return 0;

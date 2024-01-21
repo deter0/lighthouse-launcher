@@ -13,6 +13,7 @@
 
 #include "desktop_file_parser.h"
 #include "slurp.h"
+#include "trie.h"
 
 #define WINDOW_WIDTH 600
 #define WINDOW_HEIGHT 400
@@ -116,6 +117,11 @@ int main(void) {
 	SetWindowMaxSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 	SetWindowMinSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 
+	TrieNode *app_name_search_trie = trie_alloc_node();
+	for (size_t i = 0; i < entries.entries_count; i++) {
+		trie_push_text(app_name_search_trie, TextToLower(entries.entries[i].generic_name));
+	}
+
 	// Load SDF required shader (we use default vertex shader)
 
 	Font prompt_ttf = { 0 };
@@ -123,7 +129,7 @@ int main(void) {
 	prompt_ttf = load_sdf_font("./res/Prompt-Regular.ttf");
 	sdf_shader = LoadShader(0, "./res/sdf_font.fs");
 #else
-	prompt_ttf = LoadFont("./res/Prompt-Regular.ttf");
+	prompt_ttf = LoadFontEx("./res/Prompt-Regular.ttf", 32, NULL, 0);
 	sdf_shader = LoadShader(0, 0);
 #endif
 
@@ -150,6 +156,8 @@ int main(void) {
 		ClearBackground(BLACK);
 
 		int char_pressed = 0;
+		bool update_results = false;
+		
 		while ((char_pressed = GetCharPressed()) != 0) {
 			printf("Typed: %c\n", (char)char_pressed);
 
@@ -157,6 +165,8 @@ int main(void) {
 				search_buffer[search_buffer_len++] = (char)char_pressed;
 				search_buffer[search_buffer_len] = 0;
 				assert(search_buffer_len < SEARCH_BUFFER_MAX_LEN);
+
+				update_results = true;
 			}
 		}
 
@@ -184,6 +194,16 @@ int main(void) {
 			} else {
 				search_buffer[--search_buffer_len] = 0;
 				assert(search_buffer_len >= 0);
+			}
+			update_results = true;
+		}
+
+		if (update_results) {
+			WordPool trie_search_result = { 0 };
+			trie_search(app_name_search_trie, TextToLower(search_buffer), &trie_search_result);
+
+			for (size_t i = 0; i < trie_search_result.words_count; i++) {
+				printf("Suggestion: %s\n", trie_search_result.words[i]);
 			}
 		}
 
