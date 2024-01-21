@@ -12,9 +12,15 @@
 #include "sv/sv.h"
 
 #include "desktop_file_parser.h"
+#include "slurp.h"
 
 #define WINDOW_WIDTH 600
 #define WINDOW_HEIGHT 400
+
+#define SEARCH_BUFFER_MAX_LEN 32
+
+#define USE_SDF_FONTS
+Shader sdf_shader;
 
 const char *get_filename_ext(const char *filename) {
   const char *dot = strrchr(filename, '.');
@@ -78,29 +84,142 @@ LighthouseDesktopEntries get_application_files(const char *directory) {
 	return desktop_entries;
 }
 
-int main(void) {
-	get_application_files("/usr/share/applications");
-	return 0;
+Font load_sdf_font(const char *font_path) {
+	Font fontSDF = { 0 };
 	
+	int font_file_size = 0;
+	unsigned char *font_file_data = LoadFileData(font_path, &font_file_size);
+
+	fontSDF.baseSize = 32;
+	fontSDF.glyphCount = 95;
+	
+	fontSDF.glyphs = LoadFontData(font_file_data, font_file_size, fontSDF.baseSize, 0, 0, FONT_SDF);
+	
+	Image atlas = GenImageFontAtlas(fontSDF.glyphs, &fontSDF.recs, fontSDF.glyphCount, fontSDF.baseSize, 0, 1);
+	fontSDF.texture = LoadTextureFromImage(atlas);
+	
+	UnloadImage(atlas);
+	UnloadFileData(font_file_data);
+
+	SetTextureFilter(fontSDF.texture, TEXTURE_FILTER_BILINEAR);    // Required for SDF font
+
+	return fontSDF;
+}
+
+int main(void) {
+	LighthouseDesktopEntries entries = get_application_files("/usr/share/applications");
+
+	SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
 	InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Lighthouse Launcher");
 	SetWindowState(FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST);
 
 	SetWindowMaxSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 	SetWindowMinSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-	while (!WindowShouldClose()) {
+	// Load SDF required shader (we use default vertex shader)
+
+	Font prompt_ttf = { 0 };
+#ifdef USE_SDF_FONTS
+	prompt_ttf = load_sdf_font("./res/Prompt-Regular.ttf");
+	sdf_shader = LoadShader(0, "./res/sdf_font.fs");
+#else
+	prompt_ttf = LoadFont("./res/Prompt-Regular.ttf");
+	sdf_shader = LoadShader(0, 0);
+#endif
+
+	SetTargetFPS(60);
+
+	const float text_size = 32.f;
+	const float padding = 4.f;
+	
+	bool quit = false;
+
+	int mouse_x = GetMouseX(), mouse_y = GetMouseY();
+	DisableCursor();
+
+	char search_buffer[SEARCH_BUFFER_MAX_LEN] = { 0 };
+	int search_buffer_len = 0;
+
+	while (!WindowShouldClose() && !quit) {
 		if (IsKeyReleased(KEY_ESCAPE)) {
 			CloseWindow();	
 		}
 
+		BeginDrawing();
+		
+		ClearBackground(BLACK);
+
+		int char_pressed = 0;
+		while ((char_pressed = GetCharPressed()) != 0) {
+			printf("Typed: %c\n", (char)char_pressed);
+
+			if (search_buffer_len + 1 < SEARCH_BUFFER_MAX_LEN) {
+				search_buffer[search_buffer_len++] = (char)char_pressed;
+				search_buffer[search_buffer_len] = 0;
+				assert(search_buffer_len < SEARCH_BUFFER_MAX_LEN);
+			}
+		}
+
+		if ((IsKeyPressedRepeat(KEY_BACKSPACE) || IsKeyPressed(KEY_BACKSPACE)) && search_buffer_len > 0) {
+			if (IsKeyDown(KEY_LEFT_CONTROL)) { // Delete words
+				if (search_buffer_len > 0) {
+					bool first_non_space_char_found = false;
+					
+					for (int i = search_buffer_len - 1; i >= 0; i--) {
+						if (!isspace(search_buffer[i])) {
+							first_non_space_char_found = true;
+						}
+							
+						if (i == 0) {
+							search_buffer[i] = 0;
+							search_buffer_len = i;
+							break;
+						} else if (search_buffer[i] == ' ' && first_non_space_char_found) {
+							search_buffer[i + 1] = 0;
+							search_buffer_len = i + 1;
+							break;
+						}
+					}
+				}
+			} else {
+				search_buffer[--search_buffer_len] = 0;
+				assert(search_buffer_len >= 0);
+			}
+		}
+
+		static int height = text_size + padding * 2;
+		DrawRectangle(0, GetRenderHeight() - height, GetRenderWidth(), height, WHITE);
+
+		Vector2 search_buffer_dims = MeasureTextEx(prompt_ttf, search_buffer, text_size, 0.f);
+		Vector2 search_buffer_start = (Vector2){ padding, GetRenderHeight() - text_size - padding };
+
+		// Draw Cursor
+		DrawRectangle(search_buffer_start.x + search_buffer_dims.x, search_buffer_start.y, 1, text_size, BLACK);
+
+		BeginShaderMode(sdf_shader);
+			DrawTextEx(prompt_ttf, search_buffer, search_buffer_start, text_size, 0.f, BLACK);
+		EndShaderMode();
 		
 		
-		BeginDrawing();	
-		ClearBackground(RED);
+		BeginShaderMode(sdf_shader);
+			for (size_t i = 0; i < entries.entries_count; i++) {
+				DrawTextEx(prompt_ttf, entries.entries[i].name, (Vector2){0, GetRenderHeight() - height - (text_size * (i+1))}, text_size, 0.f, WHITE);
+			}
+		EndShaderMode();
+		
 		EndDrawing();
+
+		if (!IsWindowFocused()) {
+			quit = true;
+		}
 	}
 
+	EnableCursor();
+	SetMousePosition(mouse_x, mouse_y);
+	
 	CloseWindow();
+
+	free(entries.entries);
 
 	return 0;
 }
