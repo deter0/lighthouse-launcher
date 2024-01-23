@@ -126,6 +126,9 @@ LighthouseDesktopEntry get_desktop_file_contents_info(const char *file_contents_
         } else if (strcmp(entry->entry_key, "Type") == 0) {
           assert(entry->value_type == DF_VALUE_STRING_S); // Only supporting small strings for now
           memcpy(info.type, entry->value_string_small, MAX_SMALL_STRING_LEN);
+        } else if (strcmp(entry->entry_key, "Exec") == 0) {
+          assert(entry->value_type == DF_VALUE_STRING_S); // Only supporting small strings for now
+          memcpy(info.exec, entry->value_string_small, MAX_SMALL_STRING_LEN);
         }
       }
     }

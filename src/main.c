@@ -3,6 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
+#include <unistd.h>
 
 #include <dirent.h>
 
@@ -16,12 +17,14 @@
 #include "trie.h"
 
 #define WINDOW_WIDTH 600
-#define WINDOW_HEIGHT 400
+#define WINDOW_HEIGHT 500
 
 #define SEARCH_BUFFER_MAX_LEN 32
 
-#define USE_SDF_FONTS
+// #define USE_SDF_FONTS
 Shader sdf_shader;
+
+#define ARRAY_LEN(xs) (sizeof(xs)/sizeof(xs[0]))
 
 const char *get_filename_ext(const char *filename) {
   const char *dot = strrchr(filename, '.');
@@ -105,6 +108,66 @@ Font load_sdf_font(const char *font_path) {
 	SetTextureFilter(fontSDF.texture, TEXTURE_FILTER_BILINEAR);    // Required for SDF font
 
 	return fontSDF;
+}
+
+char modifiers[] = {
+	'f',
+	'F',
+	'u',
+	'U',
+	'd',
+	'D',
+	'n',
+	'N',
+	'i',
+	'c',
+	'k',
+	'v',
+	'm'
+};
+
+int execute_desktop_file(LighthouseDesktopEntry *entry) {
+	assert(entry);
+
+	char exec_string[MAX_SMALL_STRING_LEN];
+	memcpy(exec_string, entry->exec, MAX_SMALL_STRING_LEN);
+
+	size_t exec_string_len = strlen(exec_string);
+	assert(exec_string_len < MAX_SMALL_STRING_LEN);
+
+	char exec_string_stripped[MAX_SMALL_STRING_LEN] = { 0 };
+	size_t exec_stripped_len = 0;
+
+	size_t modifiers_count = 0;
+	for (size_t j = 0; j <= exec_string_len; j++) {
+		if (exec_string[j] == '%' && (j + 1) < exec_string_len) {
+			char after_percent = exec_string[j + 1];
+			bool valid_modifier_found = false;
+
+			for (size_t i = 0; i < ARRAY_LEN(modifiers); i++) {
+				if (after_percent == modifiers[i]) {
+					valid_modifier_found = true;
+					modifiers_count++;
+					j++; // Skip character
+					break;
+				}
+			}
+
+			if (!valid_modifier_found) {
+				fprintf(stderr, "Exec string modifier unknown: %%%c.\n", after_percent);  
+			}
+		} else {
+			exec_string_stripped[exec_stripped_len++] = exec_string[j];
+		}
+	}
+
+	printf("Modifiers Count: %zu\n", modifiers_count);
+	printf("New String: `%s`\n", exec_string_stripped);
+
+	assert(strlen(exec_string_stripped) == exec_string_len-2*modifiers_count);
+
+	return execl("/bin/sh", "sh", "-c", exec_string_stripped , "&", (char *) NULL);
+	// return system(exec_string_new);
 }
 
 int main(void) {
@@ -209,9 +272,19 @@ int main(void) {
 		if (IsKeyPressed(KEY_DOWN)) {
 			selected_entry_index -= 1;
 		}
-		// selected_entry_index = selected_entry_index < 0 ? 0 : selected_entry_index;
-		selected_entry_index = selected_entry_index > trie_search_result.words_count ? trie_search_result.words_count - 1 : selected_entry_index;
-		printf("%d\n", selected_entry_index);
+		if (IsKeyPressed(KEY_ENTER)) {
+			TrieWord current_selected_word = trie_search_result.words[selected_entry_index];
+			assert(current_selected_word.user_ptr != NULL);
+
+			LighthouseDesktopEntry *selected_entry = (LighthouseDesktopEntry*)current_selected_word.user_ptr;
+			printf("Opening: `%s`, Command: `%s`\n", selected_entry->name, selected_entry->exec);
+
+			int status = execute_desktop_file(selected_entry);
+			printf("Executed program stripped of arguments, status: %d.\n", status);
+
+			quit = true;
+		}
+		selected_entry_index = (size_t)selected_entry_index > trie_search_result.words_count ? (int)trie_search_result.words_count - 1 : selected_entry_index;
 
 		if (update_results) {
 			trie_search_result.words_count = 0;
@@ -236,13 +309,12 @@ int main(void) {
 			DrawTextEx(prompt_ttf, search_buffer, search_buffer_start, text_size, 0.f, BLACK);
 		EndShaderMode();
 		
-		
 		BeginShaderMode(sdf_shader);
 			for (size_t i = 0; i < trie_search_result.words_count; i++) {
 				LighthouseDesktopEntry *entry = (LighthouseDesktopEntry*)trie_search_result.words[i].user_ptr;
 				Color text_color = { 111, 111, 111, 255 };
 
-				if (i == selected_entry_index) {
+				if ((int)i == selected_entry_index) {
 					text_color = WHITE;
 				}
 				

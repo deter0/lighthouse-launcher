@@ -12,6 +12,7 @@ typedef struct {
   char categories[MAX_SMALL_STRING_LEN];
   char icon[MAX_SMALL_STRING_LEN];
   char type[MAX_SMALL_STRING_LEN];
+  char exec[MAX_SMALL_STRING_LEN];
 } LighthouseDesktopEntry;
 
 typedef enum ValueType { DF_VALUE_NONE, DF_VALUE_INT, DF_VALUE_FLOAT, DF_VALUE_STRING_L, DF_VALUE_STRING_S, DF_VALUE_BOOL }  ValueType;
