@@ -119,7 +119,7 @@ int main(void) {
 
 	TrieNode *app_name_search_trie = trie_alloc_node();
 	for (size_t i = 0; i < entries.entries_count; i++) {
-		trie_push_text(app_name_search_trie, TextToLower(entries.entries[i].generic_name));
+		trie_push_text(app_name_search_trie, TextToLower(entries.entries[i].name), (void*)&entries.entries[i]);
 	}
 
 	// Load SDF required shader (we use default vertex shader)
@@ -146,6 +146,11 @@ int main(void) {
 	char search_buffer[SEARCH_BUFFER_MAX_LEN] = { 0 };
 	int search_buffer_len = 0;
 
+	WordPool trie_search_result = { 0 };
+	trie_search(app_name_search_trie, "", &trie_search_result);
+
+	int selected_entry_index = 0;
+	
 	while (!WindowShouldClose() && !quit) {
 		if (IsKeyReleased(KEY_ESCAPE)) {
 			CloseWindow();	
@@ -198,12 +203,23 @@ int main(void) {
 			update_results = true;
 		}
 
+		if (IsKeyPressed(KEY_UP)) {
+			selected_entry_index += 1;
+		}
+		if (IsKeyPressed(KEY_DOWN)) {
+			selected_entry_index -= 1;
+		}
+		// selected_entry_index = selected_entry_index < 0 ? 0 : selected_entry_index;
+		selected_entry_index = selected_entry_index > trie_search_result.words_count ? trie_search_result.words_count - 1 : selected_entry_index;
+		printf("%d\n", selected_entry_index);
+
 		if (update_results) {
-			WordPool trie_search_result = { 0 };
+			trie_search_result.words_count = 0;
+			
 			trie_search(app_name_search_trie, TextToLower(search_buffer), &trie_search_result);
 
 			for (size_t i = 0; i < trie_search_result.words_count; i++) {
-				printf("Suggestion: %s\n", trie_search_result.words[i]);
+				printf("Suggestion: %s\n", trie_search_result.words[i].word);
 			}
 		}
 
@@ -222,8 +238,15 @@ int main(void) {
 		
 		
 		BeginShaderMode(sdf_shader);
-			for (size_t i = 0; i < entries.entries_count; i++) {
-				DrawTextEx(prompt_ttf, entries.entries[i].name, (Vector2){0, GetRenderHeight() - height - (text_size * (i+1))}, text_size, 0.f, WHITE);
+			for (size_t i = 0; i < trie_search_result.words_count; i++) {
+				LighthouseDesktopEntry *entry = (LighthouseDesktopEntry*)trie_search_result.words[i].user_ptr;
+				Color text_color = { 111, 111, 111, 255 };
+
+				if (i == selected_entry_index) {
+					text_color = WHITE;
+				}
+				
+				DrawTextEx(prompt_ttf, entry->name, (Vector2){0, GetRenderHeight() - height - (text_size * (i+1))}, text_size, 0.f, text_color);
 			}
 		EndShaderMode();
 		
