@@ -170,12 +170,16 @@ int execute_desktop_file(LighthouseDesktopEntry *entry) {
 	// return system(exec_string_new);
 }
 
+const char *get_icon_file_path(const char *icon_name) {
+
+}
+
 int main(void) {
 	LighthouseDesktopEntries entries = get_application_files("/usr/share/applications");
 
 	SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
 	InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Lighthouse Launcher");
-	SetWindowState(FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST);
+	// SetWindowState(FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST);
 
 	SetWindowMaxSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 	SetWindowMinSize(WINDOW_WIDTH, WINDOW_HEIGHT);
