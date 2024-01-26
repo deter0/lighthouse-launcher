@@ -4,3 +4,6 @@ trie.dot
 trie.svg
 massif.out.*
 lighthouse
+test_out/
+lighthouse-bin
+plugins/default_ui.so

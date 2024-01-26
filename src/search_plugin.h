@@ -1,0 +1,20 @@
+#pragma once
+
+#include <stdio.h>
+
+#include "./common/trie.h"
+
+typedef struct {
+		char name[MAX_SMALL_STRING_LEN];
+		void *user_ptr;
+		size_t results_count; // Length determined by first element
+} SearchPluginResult;
+
+typedef bool (*search_plugin_init_t)(void);
+typedef SearchPluginResult* (*search_plugin_search_t)(const char *query); // Length determined by first element
+
+typedef struct {
+	search_plugin_init_t search_plugin_init;
+	search_plugin_search_t search_plugin_search;
+} SearchPlugin;
+
