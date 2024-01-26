@@ -83,7 +83,8 @@ static void search_down_for_words(TrieNode *root, WordPool *word_pool) {
     
     memcpy(word_pool->words[word_pool->words_count].word, word, MAX_WORD_LEN);
     word_pool->words[word_pool->words_count++].user_ptr = root->user_ptr;
-    if (word_pool->words_count >= MAX_WORDS_PER_TRIE_POOL) {
+    
+    if (word_pool->words_count > MAX_WORDS_PER_TRIE_POOL) {
       printf("Max search reached.\n");
       return;
     }

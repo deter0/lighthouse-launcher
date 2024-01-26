@@ -6,10 +6,10 @@
 #include <stdbool.h>
 #include <string.h>
 
-#define MAX_WORDS_PER_TRIE_POOL 128
+#define MAX_WORDS_PER_TRIE_POOL 256
 #define MAX_WORD_LEN 64
 
-#define TRIE_NODE_POOL_CAP 1024
+#define TRIE_NODE_POOL_CAP 2048
 
 typedef struct TrieNode TrieNode;
 struct TrieNode {
