@@ -4,76 +4,184 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <dirent.h>
+
 #include "raylib.h"
 
 #define _GNU_SOURCE
 #include <dlfcn.h>
 
+#ifndef SV_IMPLEMENTATION
 #define SV_IMPLEMENTATION
+#endif
+
 #include "sv/sv.h"
 
 #include "ui_provider.h"
+#include "search_plugin.h"
 
 #define WINDOW_WIDTH 600
 #define WINDOW_HEIGHT 500
 
 #define SEARCH_BUFFER_MAX_LEN 32
-char search_buffer[SEARCH_BUFFER_MAX_LEN] = { 0 };
-int search_buffer_len = 0;
+static char search_buffer[SEARCH_BUFFER_MAX_LEN] = { 0 };
+static int search_buffer_len = 0;
+
+#define MAX_SEARCH_PLUGINS 8
+static SearchPlugin search_plugins[MAX_SEARCH_PLUGINS] = { 0 };
+static size_t search_plugins_count = 0;
 
 #define ARRAY_LEN(xs) (sizeof(xs)/sizeof(xs[0]))
 
 static UIProvider default_ui_provider = { 0 };
 
 bool load_ui_functions(const char *ui_so_path, UIProvider *ui_provider) {
-		void *ui_so_handle = dlopen(ui_so_path, RTLD_NOW | RTLD_GLOBAL);
-		if (!ui_so_handle) {
-			fprintf(stderr, "Error loading ui theme: `%s`.\n", ui_so_path);
-			fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
-			return false;
-		}
+	void *ui_so_handle = dlopen(ui_so_path, RTLD_NOW | RTLD_GLOBAL);
+	if (!ui_so_handle) {
+		fprintf(stderr, "Error loading ui theme: `%s`.\n", ui_so_path);
+		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
+		return false;
+	}
 
-		printf("Loading functions from UI .so file: `%s`.\n", ui_so_path);
+	printf("Loading functions from UI .so file: `%s`.\n", ui_so_path);
 
-		ui_provider->ui_init = dlsym(ui_so_handle, "ui_init");
-		if (!ui_provider->ui_init) {
-			fprintf(stderr, "\tYour UI theme does not have an `ui_init` function.\n");
-			fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
+	ui_provider->ui_init = dlsym(ui_so_handle, "ui_init");
+	if (!ui_provider->ui_init) {
+		fprintf(stderr, "\tYour UI theme does not have an `ui_init` function.\n");
+		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
 
-			return false;
-		}
+		return false;
+	}
 
-		ui_provider->ui_get_background_color = dlsym(ui_so_handle, "ui_get_background_color");
-		if (!ui_provider->ui_get_background_color) {
-			fprintf(stderr, "\tYour UI theme does not have an `ui_get_background_color` function.\n");
-			fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
+	ui_provider->ui_get_background_color = dlsym(ui_so_handle, "ui_get_background_color");
+	if (!ui_provider->ui_get_background_color) {
+		fprintf(stderr, "\tYour UI theme does not have an `ui_get_background_color` function.\n");
+		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
 
-			return false;
-		}
-		
-		ui_provider->ui_draw_user_input_field = dlsym(ui_so_handle, "ui_draw_user_input_field");
-		if (!ui_provider->ui_draw_user_input_field) {
-			fprintf(stderr, "\tYour UI theme does not have an `ui_draw_user_input_field` function.\n");
-			fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
+		return false;
+	}
+	
+	ui_provider->ui_draw_user_input_field = dlsym(ui_so_handle, "ui_draw_user_input_field");
+	if (!ui_provider->ui_draw_user_input_field) {
+		fprintf(stderr, "\tYour UI theme does not have an `ui_draw_user_input_field` function.\n");
+		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
 
-			return false;
-		}
-		
-		return true;
+		return false;
+	}
+
+	ui_provider->ui_draw_entry = dlsym(ui_so_handle, "ui_draw_entry");
+	if (!ui_provider->ui_draw_entry) {
+		fprintf(stderr, "\tYour UI theme does not have an `ui_draw_entry` function.\n");
+		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
+
+		return false;
+	}
+
+	return true;
 }
 
-void requery_all_plugins() {
+bool load_plugin(const char *plugin_so_path, SearchPlugin *new_plugin) {
+	void *plugin_so_handle = dlopen(plugin_so_path, RTLD_NOW | RTLD_GLOBAL);
+	if (!plugin_so_handle) {
+		fprintf(stderr, "Error opening search plugin: `%s`.\n", plugin_so_path);
+		fprintf(stderr, "\tdlerror: `%s`.\n", dlerror());
+		return false;
+	}
+	
+	new_plugin->search_plugin_init = dlsym(plugin_so_handle, "search_plugin_init");
+	if (!new_plugin->search_plugin_init) {
+		fprintf(stderr, "Your plugin: %s does not have an `search_plugin_init` function.\n", plugin_so_path);
+		fprintf(stderr, "\tdlerror: `%s`.\n", dlerror());
+
+		return false;
+	}
+
+	new_plugin->search_plugin_query = dlsym(plugin_so_handle, "search_plugin_query");
+	if (!new_plugin->search_plugin_query) {
+		fprintf(stderr, "Your plugin: %s does not have an `search_plugin_query` function.\n", plugin_so_path);
+		fprintf(stderr, "\tdlerror: `%s`.\n", dlerror());
+
+		return false;
+	}
+
+	return true;
+}
+
+static const char *get_filename_ext(const char *filename) {
+  const char *dot = strrchr(filename, '.');
+  if(!dot || dot == filename) return "";
+  return dot + 1;
+}
+
+void load_search_plugins_from_dir(const char *directory_path) {
+	DIR *plugin_dir;
+	struct dirent *plugin_dir_entry;
+	
+	if ((plugin_dir = opendir(directory_path)) == NULL) {
+		fprintf(stderr, "Error: opening search plugin directory: %s:%s.\n", directory_path, strerror(errno));
+	}
+
+	while ((plugin_dir_entry = readdir(plugin_dir)) != NULL) {
+		if (strcmp(plugin_dir_entry->d_name, ".") == 0 || strcmp(plugin_dir_entry->d_name, "..") == 0) {
+			continue;
+		}
+		
+		char file_full_path[4096] = { 0 };
+		snprintf(file_full_path, 4096, "%s/%s", directory_path, plugin_dir_entry->d_name);
+
+		if (plugin_dir_entry->d_type != DT_DIR) {
+			const char *extension = get_filename_ext(file_full_path);
+			if (strcmp(extension, "so") == 0) {
+				printf(".SO plugin: `%s`\n", file_full_path);
+
+				int index = strlen(file_full_path) - 3 - 2;
+				bool is_ui_file = false;
+				if (index > 0 && index < (int)strlen(file_full_path)) {
+					const char *ending = file_full_path + (strlen(file_full_path) - 3 - 2);
+					if (strcmp(ending, "ui.so") == 0) {
+						is_ui_file = true;
+						printf("\tFlagged as UI file skipping in plugin load (`%s`)\n", file_full_path);
+					}
+				}
+
+				if (!is_ui_file) {
+					SearchPlugin new_plugin = { 0 };
+					
+					size_t plugin_name_str_size = strlen(plugin_dir_entry->d_name);
+					memcpy(new_plugin.plugin_name, plugin_dir_entry->d_name, plugin_name_str_size < MAX_SMALL_STRING_LEN ? plugin_name_str_size : MAX_SMALL_STRING_LEN - 1);
+
+					assert(load_plugin(file_full_path, &new_plugin) != false);
+					printf("\t✅ Plugin Loaded!\n");
+
+					memcpy(&search_plugins[search_plugins_count++], &new_plugin, sizeof(new_plugin));
+				}
+			}
+		}
+	}
 }
 
 static void search_buffer_backspace(bool ctrl);
 
 int main(void) {
 	assert(load_ui_functions("./plugins/default_ui.so", &default_ui_provider) != false);
+	load_search_plugins_from_dir("./plugins");
 	
 	SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
 	InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Lighthouse Launcher");
 	SetWindowState(FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST);
 
+	printf("Initializing Search Plugins.\n");
+	for (size_t i = 0; i < search_plugins_count; i++) {
+		printf("\tInitializing Search Plugin: `%s`.\n", search_plugins[i].plugin_name);
+		printf("\n==================== PLUGIN LOG ====================\n");  
+		bool status = search_plugins[i].search_plugin_init();
+		printf("==================== END    LOG ====================\n\n");
+		if (status == false) {
+			printf("\t❌ Failed to Initalize Search Plugin.\n\n");
+		} else {
+			printf("\t✅ Initalized Search Plugin Succesfully.\n\n");
+		}
+	}
 	
 	SetWindowMaxSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 	SetWindowMinSize(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -92,13 +200,15 @@ int main(void) {
 		}
 
 		BeginDrawing();
-		
 		ClearBackground(default_ui_provider.ui_get_background_color());
+
+		DrawFPS(20, 20);
 
 		bool requery_plugins = false;
 		
 		int char_input = 0;
 		while ((char_input = GetCharPressed()) != 0) {
+			printf("%c\n", char_input);
 			if (search_buffer_len < SEARCH_BUFFER_MAX_LEN - 1) {
 				search_buffer[search_buffer_len++] = (char)char_input;
 				search_buffer[search_buffer_len] = 0;
@@ -119,9 +229,22 @@ int main(void) {
 		if (IsKeyPressed(KEY_DOWN)) {
 			selected_entry_index -= 1;
 		}
+
+		default_ui_provider.ui_draw_entry(0);
+		default_ui_provider.ui_draw_entry("Hello!");
+		default_ui_provider.ui_draw_entry("I lvoe my gf");
+		default_ui_provider.ui_draw_entry("me more");
 		
 		if (requery_plugins) {
-			requery_all_plugins();
+			for (size_t i = 0; i < search_plugins_count; i++) {
+				printf("HAI!\n");
+				SearchPlugin *plugin = &search_plugins[i];
+
+				SearchPluginResult *results = plugin->search_plugin_query(search_buffer);
+				for (size_t j = 0; j < results->results_count; j++) {
+					printf("%s\n", results[j].name);
+				}
+			}
 		}
 
 		default_ui_provider.ui_draw_user_input_field(search_buffer);

@@ -63,9 +63,9 @@ LighthouseDesktopEntries collect_application_files(const char *directory) {
 		} else {
 			const char *extension = get_filename_ext(full_name);
 			if (strcmp(extension, "desktop") == 0) {
-				printf("Parsing Desktop File: %s\n", full_name);
+				//printf("Parsing Desktop File: %s\n", full_name);
 				LighthouseDesktopEntry desktop_entry = get_desktop_file_info(full_name);
-				printf("\tName: '%s', Categories: '%s', Generic Name: '%s', Icon: '%s'\n", desktop_entry.name, desktop_entry.categories, desktop_entry.generic_name, desktop_entry.icon);
+				//printf("\tName: '%s', Categories: '%s', Generic Name: '%s', Icon: '%s'\n", desktop_entry.name, desktop_entry.categories, desktop_entry.generic_name, desktop_entry.icon);
 
 				LighthouseDesktopEntry *entry_in_list = &desktop_entries.entries[desktop_entries.entries_count++];
 				memcpy(entry_in_list, &desktop_entry, sizeof(LighthouseDesktopEntry));

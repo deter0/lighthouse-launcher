@@ -111,7 +111,6 @@ LighthouseDesktopEntry get_desktop_file_contents_info(const char *file_contents_
       for (size_t j = 0; j < group->entries_count; j++) {
         DesktopFileEntry *entry = &group->entries[j];
 
-
         if (strcmp(entry->entry_key, "Name") == 0) {
           assert(entry->value_type == DF_VALUE_STRING_S); // Only supporting small strings for 
           memcpy(info.name, entry->value_string_small, MAX_SMALL_STRING_LEN);

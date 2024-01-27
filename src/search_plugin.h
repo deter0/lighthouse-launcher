@@ -11,10 +11,11 @@ typedef struct {
 } SearchPluginResult;
 
 typedef bool (*search_plugin_init_t)(void);
-typedef SearchPluginResult* (*search_plugin_search_t)(const char *query); // Length determined by first element
+typedef SearchPluginResult* (*search_plugin_query_t)(const char *query); // Length determined by first element
 
 typedef struct {
+	char plugin_name[MAX_SMALL_STRING_LEN];
 	search_plugin_init_t search_plugin_init;
-	search_plugin_search_t search_plugin_search;
+	search_plugin_query_t search_plugin_query;
 } SearchPlugin;
 

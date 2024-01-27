@@ -7,7 +7,7 @@ RAYLIB_A=./lib/raylib/src/libraylib.so ;
 if test -f "$FILE"; then
     echo "RAYLIB COMPILED." ;
 else
-    cd ./raylib/src && make && cd ../..;
+    cd ./lib/raylib/src && make && cd ../../../;
     echo "RAYLIB BUILT." ;
 fi
 
@@ -21,10 +21,10 @@ cc $CFLAGS -shared -fPIC -o ./plugins/default_ui.so ./src/themes/default_ui.c $R
 
 cc $FILES $CFLAGS -o ./lighthouse-bin $LIBS ;
 
-
-
 DIRNAME=`dirname $RAYLIB_A`
 RAYLIB_SRC_DIR=`realpath $DIRNAME`
 printf "#!/bin/sh\nLD_LIBRARY_PATH=$RAYLIB_SRC_DIR ./lighthouse-bin\n" > lighthouse
 chmod +x ./lighthouse
+
+./src/search_plugins/application_files/build_plugin_application_files.sh ; 
 
