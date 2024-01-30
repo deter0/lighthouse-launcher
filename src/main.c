@@ -214,6 +214,7 @@ int main(void) {
 		if (IsKeyPressed(KEY_ENTER) && selected_result) {
 			assert(selected_result->plugin);
 			selected_result->plugin->search_plugin_execute(selected_result);
+			quit = true;
 		}
 		
 		if (requery_plugins) {
