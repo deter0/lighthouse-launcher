@@ -215,7 +215,6 @@ int main(void) {
 
 				SearchPluginResult *results = plugin->search_plugin_query(search_buffer);
 				for (size_t i = 0; i < results->results_count; i++) {
-					printf("%s\n", results[i].name);
 					if (current_results_count < CURRENT_RESULTS_MAX) {
 						current_results[current_results_count++] = &results[i];
 						results[i].plugin = plugin;
@@ -232,11 +231,11 @@ int main(void) {
 		
 		default_ui_provider.ui_draw_entry(NULL, 0);
 
-		SearchPlugin *last_plugin = current_results_count > 0 ? current_results[0]->plugin : NULL;
+		struct SearchPlugin *last_plugin = current_results_count > 0 ? current_results[0]->plugin : NULL;
 		for (size_t i = 0; i < current_results_count; i++) {
 			default_ui_provider.ui_draw_entry(current_results[i]->name, i == 0);
 
-			if (i == current_results_count - 1 || current_results[i]->plugin != last_plugin) {
+			if (i == current_results_count - 1 || (size_t)current_results[i]->plugin != (size_t)last_plugin) {
 				last_plugin = current_results[i]->plugin;
 				default_ui_provider.ui_draw_entry_group(last_plugin->plugin_metadata.plugin_display_name);
 			}

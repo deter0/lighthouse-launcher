@@ -4,7 +4,7 @@
 
 #include "./common/trie.h"
 
-typedef struct {
+typedef struct SearchPluginResult {
 		char name[MAX_SMALL_STRING_LEN];
 		void *user_ptr;
 		float score; // 0 -> 1
@@ -12,7 +12,7 @@ typedef struct {
 		size_t results_count; // Length of results determined by first element
 } SearchPluginResult;
 
-typedef struct {
+typedef struct SearchPluginMetadata {
 	const char *plugin_display_name;
 	bool init_status;
 } SearchPluginMetadata;
@@ -20,7 +20,7 @@ typedef struct {
 typedef SearchPluginMetadata (*search_plugin_init_t)(void);
 typedef SearchPluginResult* (*search_plugin_query_t)(const char *query);
 
-typedef struct {
+typedef struct SearchPlugin {
 	char plugin_file_name[MAX_SMALL_STRING_LEN];
 	SearchPluginMetadata plugin_metadata;
 	
