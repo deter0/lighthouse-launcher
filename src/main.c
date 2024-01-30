@@ -35,6 +35,13 @@ static size_t search_plugins_count = 0;
 
 static UIProvider default_ui_provider = { 0 };
 
+#define LOAD_FUNC(HANDLE, FUNC_NAME, PROVIDER)  PROVIDER->FUNC_NAME = dlsym(HANDLE, #FUNC_NAME); \
+	if (!PROVIDER->FUNC_NAME) { \
+		fprintf(stderr, "\tYour UI theme does not have an `" #FUNC_NAME "` function.\n"); \
+		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror()); \
+		return false; \
+	}
+
 bool load_ui_functions(const char *ui_so_path, UIProvider *ui_provider) {
 	void *ui_so_handle = dlopen(ui_so_path, RTLD_NOW | RTLD_GLOBAL);
 	if (!ui_so_handle) {
@@ -45,46 +52,12 @@ bool load_ui_functions(const char *ui_so_path, UIProvider *ui_provider) {
 
 	printf("Loading functions from UI .so file: `%s`.\n", ui_so_path);
 
-	ui_provider->ui_init = dlsym(ui_so_handle, "ui_init");
-	if (!ui_provider->ui_init) {
-		fprintf(stderr, "\tYour UI theme does not have an `ui_init` function.\n");
-		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
-
-		return false;
-	}
-
-	ui_provider->ui_get_background_color = dlsym(ui_so_handle, "ui_get_background_color");
-	if (!ui_provider->ui_get_background_color) {
-		fprintf(stderr, "\tYour UI theme does not have an `ui_get_background_color` function.\n");
-		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
-
-		return false;
-	}
+	LOAD_FUNC(ui_so_handle, ui_init, ui_provider);
+	LOAD_FUNC(ui_so_handle, ui_get_background_color, ui_provider);
+	LOAD_FUNC(ui_so_handle, ui_draw_user_input_field, ui_provider);
+	LOAD_FUNC(ui_so_handle, ui_draw_entry, ui_provider);
+	LOAD_FUNC(ui_so_handle, ui_draw_entry_group, ui_provider);
 	
-	ui_provider->ui_draw_user_input_field = dlsym(ui_so_handle, "ui_draw_user_input_field");
-	if (!ui_provider->ui_draw_user_input_field) {
-		fprintf(stderr, "\tYour UI theme does not have an `ui_draw_user_input_field` function.\n");
-		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
-
-		return false;
-	}
-
-	ui_provider->ui_draw_entry = dlsym(ui_so_handle, "ui_draw_entry");
-	if (!ui_provider->ui_draw_entry) {
-		fprintf(stderr, "\tYour UI theme does not have an `ui_draw_entry` function.\n");
-		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
-
-		return false;
-	}
-
-	ui_provider->ui_draw_entry_group = dlsym(ui_so_handle, "ui_draw_entry_group");
-	if (!ui_provider->ui_draw_entry_group) {
-		fprintf(stderr, "\tYour UI theme does not have an `ui_draw_entry_group` function.\n");
-		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
-
-		return false;
-	}
-
 	return true;
 }
 
@@ -95,22 +68,9 @@ bool load_plugin(const char *plugin_so_path, SearchPlugin *new_plugin) {
 		fprintf(stderr, "\tdlerror: `%s`.\n", dlerror());
 		return false;
 	}
-	
-	new_plugin->search_plugin_init = dlsym(plugin_so_handle, "search_plugin_init");
-	if (!new_plugin->search_plugin_init) {
-		fprintf(stderr, "Your plugin: %s does not have an `search_plugin_init` function.\n", plugin_so_path);
-		fprintf(stderr, "\tdlerror: `%s`.\n", dlerror());
 
-		return false;
-	}
-
-	new_plugin->search_plugin_query = dlsym(plugin_so_handle, "search_plugin_query");
-	if (!new_plugin->search_plugin_query) {
-		fprintf(stderr, "Your plugin: %s does not have an `search_plugin_query` function.\n", plugin_so_path);
-		fprintf(stderr, "\tdlerror: `%s`.\n", dlerror());
-
-		return false;
-	}
+	LOAD_FUNC(plugin_so_handle, search_plugin_init, new_plugin);
+	LOAD_FUNC(plugin_so_handle, search_plugin_query, new_plugin);
 
 	return true;
 }
@@ -274,7 +234,6 @@ int main(void) {
 
 		SearchPlugin *last_plugin = current_results_count > 0 ? current_results[0]->plugin : NULL;
 		for (size_t i = 0; i < current_results_count; i++) {
-			// printf("%s\n", current_results[i]->name);
 			default_ui_provider.ui_draw_entry(current_results[i]->name, i == 0);
 
 			if (i == current_results_count - 1 || current_results[i]->plugin != last_plugin) {
