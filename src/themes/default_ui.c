@@ -21,7 +21,7 @@ void ui_draw_user_input_field(const char *input_text) {
 
   Vector2 search_buffer_dims = MeasureTextEx(font, input_text, text_size, 0.f); // For cursor
   // Render at bottom
-  Vector2 search_buffer_start = (Vector2){ padding, GetRenderHeight() - text_size - padding };
+  Vector2 search_buffer_start = (Vector2){ padding*4, GetRenderHeight() - text_size - padding };
 
   // Draw Cursor
   DrawRectangle(search_buffer_start.x + search_buffer_dims.x,
@@ -44,9 +44,11 @@ void ui_draw_entry(const char *entry_name, bool highlight) {
 
     int y = GetRenderHeight() - text_rect_height - text_rect_height * entry_index; 
     if (highlight) {
-      DrawRectangle(0, y, GetRenderWidth(), text_size, (Color){36, 36, 36, 255});
+      DrawRectangleRounded((Rectangle){padding*2, y, GetRenderWidth()-4*padding, text_size}, .4f, 6, (Color){36, 36, 36, 255});
+      DrawTextEx(font, entry_name, (Vector2){padding*4, (float)y}, text_size, 0.f, WHITE);
+    } else {
+      DrawTextEx(font, entry_name, (Vector2){padding*4, (float)y}, text_size, 0.f, WHITE);
     }
-    DrawTextEx(font, entry_name, (Vector2){padding, (float)y}, text_size, 0.f, WHITE);
   }
 }
 
@@ -57,8 +59,8 @@ void ui_draw_entry_group(const char *entry_group_name) {
     entry_index++;
 
     int y = GetRenderHeight() - text_rect_height - text_rect_height * entry_index; 
-    DrawTextEx(font, entry_group_name, (Vector2){padding, (float)y}, text_size, 0.f, GRAY);
-    DrawRectangle(padding, y + text_size, GetRenderWidth() - padding*2, 1, GRAY);
+    DrawTextEx(font, entry_group_name, (Vector2){padding*4, (float)y}, text_size, 0.f, GRAY);
+    DrawRectangle(padding*4, y + text_size, GetRenderWidth() - padding*8, 1, GRAY);
   }
 }
 
