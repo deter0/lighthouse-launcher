@@ -190,7 +190,7 @@ int main(void) {
 	int selected_entry_index = 0;
 	
 	SetTargetFPS(60);
-	// DisableCursor();
+	DisableCursor();
 	
 	default_ui_provider.ui_init();
 
@@ -269,9 +269,9 @@ int main(void) {
 
 		EndDrawing();
 
-		// if (!IsWindowFocused()) {
-		// 	quit = true;
-		// }
+		if (!IsWindowFocused()) {
+			quit = true;
+		}
 	}
 
 	EnableCursor();
