@@ -76,12 +76,13 @@ static void collect_word(TrieNode *node, char *word_out) {
   word_out[word_size + 1] = 0;
 }
 
-static void search_down_for_words(TrieNode *root, WordPool *word_pool) {
+static void search_down_for_words(TrieNode *root, WordPool *word_pool, int depth) {
   if (root->word == true) {
     char word[MAX_WORD_LEN] = { 0 };
     collect_word(root, word);
     
     memcpy(word_pool->words[word_pool->words_count].word, word, MAX_WORD_LEN);
+    word_pool->words[word_pool->words_count].depth = depth;
     word_pool->words[word_pool->words_count++].user_ptr = root->user_ptr;
     
     if (word_pool->words_count > MAX_WORDS_PER_TRIE_POOL) {
@@ -92,7 +93,7 @@ static void search_down_for_words(TrieNode *root, WordPool *word_pool) {
 
   for (size_t i = 0; i < ARRAY_LEN(root->children); i++) {
     if (root->children[i] != NULL) {
-      search_down_for_words(root->children[i], word_pool);
+      search_down_for_words(root->children[i], word_pool, depth + 1);
     }
   }
 }
@@ -109,7 +110,7 @@ void trie_search(TrieNode *root, const char *text, WordPool *search_results) {
     }
   }
   
-  search_down_for_words(furthest_node, search_results);
+  search_down_for_words(furthest_node, search_results, 0);
 }
 
 static __attribute__((unused)) void dump_dot(TrieNode *root) {

@@ -23,7 +23,7 @@
 #define WINDOW_WIDTH 600
 #define WINDOW_HEIGHT 500
 
-#define SEARCH_BUFFER_MAX_LEN 32
+#define SEARCH_BUFFER_MAX_LEN MAX_SMALL_STRING_LEN
 static char search_buffer[SEARCH_BUFFER_MAX_LEN] = { 0 };
 static int search_buffer_len = 0;
 
@@ -71,6 +71,7 @@ bool load_plugin(const char *plugin_so_path, SearchPlugin *new_plugin) {
 
 	LOAD_FUNC(plugin_so_handle, search_plugin_init, new_plugin);
 	LOAD_FUNC(plugin_so_handle, search_plugin_query, new_plugin);
+	LOAD_FUNC(plugin_so_handle, search_plugin_execute, new_plugin);
 
 	return true;
 }
@@ -130,6 +131,19 @@ void load_search_plugins_from_dir(const char *directory_path) {
 
 static void search_buffer_backspace(bool ctrl);
 
+int search_results_sort_cmp(void *aa, void *bb) {
+	SearchPluginResult *a = (SearchPluginResult*)aa;
+	SearchPluginResult *b = (SearchPluginResult*)bb;
+
+	// printf("Comparing: %s <=> %s.\n", a->name, b->name);
+	
+	if (a->score <= b->score) {
+		return 1;
+	} else {
+		return -1;
+	}
+}
+
 int main(void) {
 	assert(load_ui_functions("./plugins/default_ui.so", &default_ui_provider) != false);
 	load_search_plugins_from_dir("./plugins");
@@ -156,7 +170,6 @@ int main(void) {
 	SetWindowMinSize(WINDOW_WIDTH, WINDOW_HEIGHT);
 
 	bool quit = false;
-	int selected_entry_index = 0;
 	
 	SetTargetFPS(60);
 	DisableCursor();
@@ -167,7 +180,8 @@ int main(void) {
 	SearchPluginResult *current_results[8] = { 0 };
 	size_t current_results_count = 0;
 
-	SearchPluginResult *garbage = 0;
+	SearchPluginResult *selected_result = NULL;
+	SearchPluginResult *garbage = NULL;
 
 	while (!WindowShouldClose() && !quit) {
 		if (IsKeyReleased(KEY_ESCAPE)) {
@@ -183,7 +197,6 @@ int main(void) {
 		
 		int char_input = 0;
 		while ((char_input = GetCharPressed()) != 0) {
-			printf("%c\n", char_input);
 			if (search_buffer_len < SEARCH_BUFFER_MAX_LEN - 1) {
 				search_buffer[search_buffer_len++] = (char)char_input;
 				search_buffer[search_buffer_len] = 0;
@@ -198,11 +211,9 @@ int main(void) {
 			requery_plugins = true;
 		}
 
-		if (IsKeyPressed(KEY_UP)) {
-			selected_entry_index += 1;
-		}
-		if (IsKeyPressed(KEY_DOWN)) {
-			selected_entry_index -= 1;
+		if (IsKeyPressed(KEY_ENTER) && selected_result) {
+			assert(selected_result->plugin);
+			selected_result->plugin->search_plugin_execute(selected_result);
 		}
 		
 		if (requery_plugins) {
@@ -225,15 +236,21 @@ int main(void) {
 
 				garbage = results;
 			}
+
+			qsort(*current_results, current_results_count, sizeof(SearchPluginResult), search_results_sort_cmp);
 		}
 
 		default_ui_provider.ui_draw_user_input_field(search_buffer);
-		
 		default_ui_provider.ui_draw_entry(NULL, 0);
 
 		struct SearchPlugin *last_plugin = current_results_count > 0 ? current_results[0]->plugin : NULL;
 		for (size_t i = 0; i < current_results_count; i++) {
-			default_ui_provider.ui_draw_entry(current_results[i]->name, i == 0);
+			if (i == 0) {
+				selected_result = current_results[i];
+				default_ui_provider.ui_draw_entry(current_results[i]->name, true);
+			} else {
+				default_ui_provider.ui_draw_entry(current_results[i]->name, false);
+			}
 
 			if (i == current_results_count - 1 || (size_t)current_results[i]->plugin != (size_t)last_plugin) {
 				last_plugin = current_results[i]->plugin;

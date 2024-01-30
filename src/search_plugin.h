@@ -19,6 +19,7 @@ typedef struct SearchPluginMetadata {
 
 typedef SearchPluginMetadata (*search_plugin_init_t)(void);
 typedef SearchPluginResult* (*search_plugin_query_t)(const char *query);
+typedef void (*search_plugin_execute_t)(SearchPluginResult *result_to_execute);
 
 typedef struct SearchPlugin {
 	char plugin_file_name[MAX_SMALL_STRING_LEN];
@@ -26,5 +27,6 @@ typedef struct SearchPlugin {
 	
 	search_plugin_init_t search_plugin_init;
 	search_plugin_query_t search_plugin_query;
+	search_plugin_execute_t search_plugin_execute;
 } SearchPlugin;
 

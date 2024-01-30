@@ -23,6 +23,7 @@ struct TrieNode {
 
 typedef struct {
   char word[MAX_WORD_LEN];
+  int depth;
   void *user_ptr;
 } TrieWord;
 

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <math.h>
+#include <string.h>
 #include <stdbool.h>
 
 #include "raylib.h"
@@ -26,8 +27,12 @@ void ui_draw_user_input_field(const char *input_text) {
   DrawRectangle(search_buffer_start.x + search_buffer_dims.x,
                 search_buffer_start.y, 1, text_size,
                 (Color){0, 0, 0, (sin(GetTime()*20) + 1)/2*255 });
-  
-  DrawTextEx(font, input_text, search_buffer_start, text_size, 0.f, BLACK);
+
+  if (strlen(input_text) == 0) {
+    DrawTextEx(font, "Search...", search_buffer_start, text_size, 0.f, GRAY);
+  } else {
+    DrawTextEx(font, input_text, search_buffer_start, text_size, 0.f, BLACK);
+  }
 }
 
 static int entry_index = 0;

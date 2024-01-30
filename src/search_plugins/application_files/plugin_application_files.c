@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <unistd.h>
+#include <math.h>
 
 #include <ctype.h>
 #include <dirent.h>
@@ -147,6 +148,12 @@ int execute_desktop_file(LighthouseDesktopEntry *entry) {
 	// return system(exec_string_new);
 }
 
+void search_plugin_execute(SearchPluginResult *result_to_execute) {
+	assert(result_to_execute->user_ptr != NULL);
+	LighthouseDesktopEntry *entry = (LighthouseDesktopEntry*)result_to_execute->user_ptr;
+
+	execute_desktop_file(entry);
+}
 
 SearchPluginMetadata search_plugin_init(void) {
 	if ((app_name_search_trie = trie_alloc_node()) == NULL) {
@@ -175,7 +182,6 @@ SearchPluginResult *search_plugin_query(const char *query) {
 	for(size_t i = 0; query_lower[i]; i++){
 		query_lower[i] = tolower(query_lower[i]);
 	}
-	printf("Query: %s, Lower: %s\n", query, query_lower);
 
 	WordPool trie_search_result = { 0 };
 
@@ -191,18 +197,37 @@ SearchPluginResult *search_plugin_query(const char *query) {
   trie_search(app_name_search_trie, query_lower, &trie_search_result);
 
   SearchPluginResult *plugin_results = calloc(trie_search_result.words_count, sizeof(*plugin_results));
+
+	int max_depth = 1;
+	for (size_t i = 0; i < trie_search_result.words_count; i++) {
+		int word_depth = trie_search_result.words[i].depth;
+		if (word_depth > max_depth) {
+			max_depth = word_depth;
+		}
+	}
+  
   for (size_t i = 0; i < trie_search_result.words_count; i++) {
     SearchPluginResult *result = &plugin_results[i];
+
+		TrieWord *word = &trie_search_result.words[i];
+		
     result->results_count = trie_search_result.words_count;
-    result->user_ptr = trie_search_result.words[i].user_ptr;
+    result->user_ptr = word->user_ptr;
+
+		size_t letter_matches = 0;
+		for (size_t k = 0; k < strlen(word->word); k++) {
+			if (k > strlen(query_lower)) break;
+			if (query_lower[k] != word->word[k]) break;
+			
+			letter_matches++;
+		}
+    
+		result->score = (float)letter_matches / (float)strlen(word->word);
+		result->score = powf(result->score, 0.6);
 
     LighthouseDesktopEntry *entry = (LighthouseDesktopEntry*)(result->user_ptr);
     assert(entry != NULL);
-    
-    // memcpy(result->name, trie_search_result.words[i].word, MAX_SMALL_STRING_LEN);
     memcpy(result->name, entry->name, MAX_SMALL_STRING_LEN);
-
-    printf("Plugin Log: %s\n", plugin_results[i].name);
   }
 	plugin_results[0].results_count = trie_search_result.words_count;
 
