@@ -148,7 +148,7 @@ void load_search_plugins_from_dir(const char *directory_path) {
 					SearchPlugin new_plugin = { 0 };
 					
 					size_t plugin_name_str_size = strlen(plugin_dir_entry->d_name);
-					memcpy(new_plugin.plugin_name, plugin_dir_entry->d_name, plugin_name_str_size < MAX_SMALL_STRING_LEN ? plugin_name_str_size : MAX_SMALL_STRING_LEN - 1);
+					memcpy(new_plugin.plugin_file_name, plugin_dir_entry->d_name, plugin_name_str_size < MAX_SMALL_STRING_LEN ? plugin_name_str_size : MAX_SMALL_STRING_LEN - 1);
 
 					assert(load_plugin(file_full_path, &new_plugin) != false);
 					printf("\t✅ Plugin Loaded!\n");
@@ -170,16 +170,17 @@ int main(void) {
 	InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Lighthouse Launcher");
 	SetWindowState(FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST);
 
-	printf("Initializing Search Plugins.\n");
+	printf("Init Search Plugins.\n");
 	for (size_t i = 0; i < search_plugins_count; i++) {
-		printf("\tInitializing Search Plugin: `%s`.\n", search_plugins[i].plugin_name);
+		printf("\tInitializing Search Plugin: `%s`.\n", search_plugins[i].plugin_file_name);
 		printf("\n==================== PLUGIN LOG ====================\n");  
-		bool status = search_plugins[i].search_plugin_init();
+		SearchPluginMetadata metadata = search_plugins[i].search_plugin_init();
 		printf("==================== END    LOG ====================\n\n");
-		if (status == false) {
-			printf("\t❌ Failed to Initalize Search Plugin.\n\n");
-		} else {
+		if (metadata.init_status != false) {
 			printf("\t✅ Initalized Search Plugin Succesfully.\n\n");
+			search_plugins[i].plugin_metadata = metadata;
+		} else {
+			printf("\t❌ Failed to Initalize Search Plugin.\n\n");
 		}
 	}
 	
@@ -249,6 +250,7 @@ int main(void) {
 					printf("%s\n", results[i].name);
 					if (current_results_count < CURRENT_RESULTS_MAX) {
 						current_results[current_results_count++] = &results[i];
+						results[i].plugin = plugin;
 					} else {
 						break;
 					}
@@ -262,9 +264,15 @@ int main(void) {
 		
 		default_ui_provider.ui_draw_entry(0);
 
+		SearchPlugin *last_plugin = current_results_count > 0 ? current_results[0]->plugin : NULL;
 		for (size_t i = 0; i < current_results_count; i++) {
 			// printf("%s\n", current_results[i]->name);
 			default_ui_provider.ui_draw_entry(current_results[i]->name);
+
+			if (i == current_results_count - 1 || current_results[i]->plugin != last_plugin) {
+				last_plugin = current_results[i]->plugin;
+				default_ui_provider.ui_draw_entry(last_plugin->plugin_metadata.plugin_display_name);
+			}
 		}
 
 		EndDrawing();

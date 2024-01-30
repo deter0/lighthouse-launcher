@@ -148,9 +148,9 @@ int execute_desktop_file(LighthouseDesktopEntry *entry) {
 }
 
 
-bool search_plugin_init(void) {
+SearchPluginMetadata search_plugin_init(void) {
 	if ((app_name_search_trie = trie_alloc_node()) == NULL) {
-		return false;
+		return (SearchPluginMetadata){0};
 	}
 	
   entries = collect_application_files("/usr/share/applications");
@@ -163,7 +163,10 @@ bool search_plugin_init(void) {
 		trie_push_text(app_name_search_trie, lower_string, (void*)&entries.entries[i]);
 	}
 
-	return true;
+	return (SearchPluginMetadata){
+		.plugin_display_name = "Apps",
+		.init_status = true
+	};
 }
 
 // TODO(deter): For optimizations we can pass max-results from lighthouse main to here? we could break early then
