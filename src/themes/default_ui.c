@@ -31,14 +31,29 @@ void ui_draw_user_input_field(const char *input_text) {
 }
 
 static int entry_index = 0;
-void ui_draw_entry(const char *entry_name) {
+void ui_draw_entry(const char *entry_name, bool highlight) {
   if (entry_name == NULL) { // Reset
     entry_index = 0;
   } else {
     entry_index++;
 
     int y = GetRenderHeight() - text_rect_height - text_rect_height * entry_index; 
+    if (highlight) {
+      DrawRectangle(0, y, GetRenderWidth(), text_size, (Color){36, 36, 36, 255});
+    }
     DrawTextEx(font, entry_name, (Vector2){padding, (float)y}, text_size, 0.f, WHITE);
+  }
+}
+
+void ui_draw_entry_group(const char *entry_group_name) {
+  if (entry_group_name == NULL) { // Reset
+    entry_index = 0;
+  } else {
+    entry_index++;
+
+    int y = GetRenderHeight() - text_rect_height - text_rect_height * entry_index; 
+    DrawTextEx(font, entry_group_name, (Vector2){padding, (float)y}, text_size, 0.f, GRAY);
+    DrawRectangle(padding, y + text_size, GetRenderWidth() - padding*2, 1, GRAY);
   }
 }
 

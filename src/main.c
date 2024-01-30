@@ -77,6 +77,14 @@ bool load_ui_functions(const char *ui_so_path, UIProvider *ui_provider) {
 		return false;
 	}
 
+	ui_provider->ui_draw_entry_group = dlsym(ui_so_handle, "ui_draw_entry_group");
+	if (!ui_provider->ui_draw_entry_group) {
+		fprintf(stderr, "\tYour UI theme does not have an `ui_draw_entry_group` function.\n");
+		fprintf(stderr, "\t\tdlerror: `%s`.\n", dlerror());
+
+		return false;
+	}
+
 	return true;
 }
 
@@ -262,16 +270,16 @@ int main(void) {
 
 		default_ui_provider.ui_draw_user_input_field(search_buffer);
 		
-		default_ui_provider.ui_draw_entry(0);
+		default_ui_provider.ui_draw_entry(NULL, 0);
 
 		SearchPlugin *last_plugin = current_results_count > 0 ? current_results[0]->plugin : NULL;
 		for (size_t i = 0; i < current_results_count; i++) {
 			// printf("%s\n", current_results[i]->name);
-			default_ui_provider.ui_draw_entry(current_results[i]->name);
+			default_ui_provider.ui_draw_entry(current_results[i]->name, i == 0);
 
 			if (i == current_results_count - 1 || current_results[i]->plugin != last_plugin) {
 				last_plugin = current_results[i]->plugin;
-				default_ui_provider.ui_draw_entry(last_plugin->plugin_metadata.plugin_display_name);
+				default_ui_provider.ui_draw_entry_group(last_plugin->plugin_metadata.plugin_display_name);
 			}
 		}
 
