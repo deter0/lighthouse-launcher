@@ -190,10 +190,16 @@ int main(void) {
 	int selected_entry_index = 0;
 	
 	SetTargetFPS(60);
-	DisableCursor();
+	// DisableCursor();
 	
 	default_ui_provider.ui_init();
-	
+
+	#define CURRENT_RESULTS_MAX 8
+	SearchPluginResult *current_results[8] = { 0 };
+	size_t current_results_count = 0;
+
+	SearchPluginResult *garbage = 0;
+
 	while (!WindowShouldClose() && !quit) {
 		if (IsKeyReleased(KEY_ESCAPE)) {
 			CloseWindow();	
@@ -229,31 +235,43 @@ int main(void) {
 		if (IsKeyPressed(KEY_DOWN)) {
 			selected_entry_index -= 1;
 		}
-
-		default_ui_provider.ui_draw_entry(0);
-		default_ui_provider.ui_draw_entry("Hello!");
-		default_ui_provider.ui_draw_entry("I lvoe my gf");
-		default_ui_provider.ui_draw_entry("me more");
 		
 		if (requery_plugins) {
-			for (size_t i = 0; i < search_plugins_count; i++) {
-				printf("HAI!\n");
-				SearchPlugin *plugin = &search_plugins[i];
+			current_results_count = 0;
+
+			if (garbage) free(garbage);
+			
+			for (size_t j = 0; j < search_plugins_count; j++) {
+				SearchPlugin *plugin = &search_plugins[j];
 
 				SearchPluginResult *results = plugin->search_plugin_query(search_buffer);
-				for (size_t j = 0; j < results->results_count; j++) {
-					printf("%s\n", results[j].name);
+				for (size_t i = 0; i < results->results_count; i++) {
+					printf("%s\n", results[i].name);
+					if (current_results_count < CURRENT_RESULTS_MAX) {
+						current_results[current_results_count++] = &results[i];
+					} else {
+						break;
+					}
 				}
+
+				garbage = results;
 			}
 		}
 
 		default_ui_provider.ui_draw_user_input_field(search_buffer);
+		
+		default_ui_provider.ui_draw_entry(0);
+
+		for (size_t i = 0; i < current_results_count; i++) {
+			// printf("%s\n", current_results[i]->name);
+			default_ui_provider.ui_draw_entry(current_results[i]->name);
+		}
 
 		EndDrawing();
 
-		if (!IsWindowFocused()) {
-			quit = true;
-		}
+		// if (!IsWindowFocused()) {
+		// 	quit = true;
+		// }
 	}
 
 	EnableCursor();

@@ -32,13 +32,13 @@ void ui_draw_user_input_field(const char *input_text) {
 
 static int entry_index = 0;
 void ui_draw_entry(const char *entry_name) {
-  if (entry_name == 0) { // Reset
+  if (entry_name == NULL) { // Reset
     entry_index = 0;
   } else {
     entry_index++;
 
-    int y = (text_size + 2*padding) * entry_index; 
-    DrawTextEx(font, entry_name, (Vector2){padding, (float)y}, text_size, 0.f, BLACK);
+    int y = GetRenderHeight() - text_rect_height - text_rect_height * entry_index; 
+    DrawTextEx(font, entry_name, (Vector2){padding, (float)y}, text_size, 0.f, WHITE);
   }
 }
 

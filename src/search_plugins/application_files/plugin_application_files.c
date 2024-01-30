@@ -192,8 +192,16 @@ SearchPluginResult *search_plugin_query(const char *query) {
     SearchPluginResult *result = &plugin_results[i];
     result->results_count = trie_search_result.words_count;
     result->user_ptr = trie_search_result.words[i].user_ptr;
-    memcpy(result->name, trie_search_result.words[i].word, MAX_SMALL_STRING_LEN);
+
+    LighthouseDesktopEntry *entry = (LighthouseDesktopEntry*)(result->user_ptr);
+    assert(entry != NULL);
+    
+    // memcpy(result->name, trie_search_result.words[i].word, MAX_SMALL_STRING_LEN);
+    memcpy(result->name, entry->name, MAX_SMALL_STRING_LEN);
+
+    printf("Plugin Log: %s\n", plugin_results[i].name);
   }
+	plugin_results[0].results_count = trie_search_result.words_count;
 
   return plugin_results;
 }

@@ -7,7 +7,8 @@
 typedef struct {
 		char name[MAX_SMALL_STRING_LEN];
 		void *user_ptr;
-		size_t results_count; // Length determined by first element
+		float score; // 0 -> 1
+		size_t results_count; // Length of results determined by first element
 } SearchPluginResult;
 
 typedef bool (*search_plugin_init_t)(void);
