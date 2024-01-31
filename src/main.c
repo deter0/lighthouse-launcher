@@ -150,7 +150,7 @@ int main(void) {
 	
 	SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_VSYNC_HINT);
 	InitWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Lighthouse Launcher");
-	SetWindowState(FLAG_WINDOW_UNDECORATED | FLAG_WINDOW_TOPMOST);
+	SetWindowState(FLAG_WINDOW_TOPMOST);
 
 	printf("Init Search Plugins.\n");
 	for (size_t i = 0; i < search_plugins_count; i++) {

@@ -1,30 +1,52 @@
 #!/bin/sh
 #
 
-set -xe ;
+set -e ;
 
-RAYLIB_A=./lib/raylib/src/libraylib.so ;
-if test -f "$FILE"; then
-    echo "RAYLIB COMPILED." ;
+RAYLIB_FILE="./lib/raylib/src/libraylib.so" ;
+if test -f "$RAYLIB_FILE"; then
+    echo "Raylib is already compiled!\n" ;
 else
+    echo "Building Raylib\n\n" ;
     cd ./lib/raylib/src && make && cd ../../../;
-    echo "RAYLIB BUILT." ;
+    echo "Raylib build" ;
 fi
 
-CFLAGS="-O1 -Wall -Wextra -I./include/  -I./lib/raylib/src -ggdb" ;
+CFLAGS="-O1 -Wall -Wextra -ggdb" ;
+INCLUDE="-I./include/  -I./lib/raylib/src" ;
 FILES="./src/main.c" ;
-LIBS="-lm $RAYLIB_A -ldl" ;
+LIBS="-lm $RAYLIB_FILE -ldl" ;
 
-#build default theme
+echo "COMPILING CFLAGS: '$CFLAGS'" ;
+echo "INCLUDE: '$INCLUDE'" ;
+echo "LIBS: '$LIBS'" ;
 
-cc $CFLAGS -shared -fPIC -o ./plugins/default_ui.so ./src/themes/default_ui.c $RAYLIB_A -lm
+function compile_ui_theme() {
+    echo "Compiling default UI theme" ;
+    cc $CFLAGS -shared -fPIC -o ./plugins/default_ui.so ./src/themes/default_ui.c $LIBS ;
+}
 
-cc $FILES $CFLAGS -o ./lighthouse-bin $LIBS ;
+function compile_lighthouse_bin() {
+    cc $FILES $CFLAGS $INCLUDE -o ./lighthouse-bin $LIBS ;
+}
 
-DIRNAME=`dirname $RAYLIB_A`
-RAYLIB_SRC_DIR=`realpath $DIRNAME`
-printf "#!/bin/sh\nLD_LIBRARY_PATH=$RAYLIB_SRC_DIR ./lighthouse-bin\n" > lighthouse
-chmod +x ./lighthouse
+function generate_lighthouse_wrapper() {
+    RAYLIB_SRC_DIR_FULL_PATH=`readlink -f "./lib/raylib/src"` ;
+    BINARY_FULL_PATH=`readlink -f ./lighthouse-bin`
 
+    printf "#!/bin/sh\nLD_LIBRARY_PATH=$RAYLIB_SRC_DIR_FULL_PATH $BINARY_FULL_PATH\n" > lighthouse ;
+    chmod +x ./lighthouse ;
+}
+
+echo "Compiling UI Theme" ;
+compile_ui_theme ;
+
+echo "Compiling Lighthouse Binary" ;
+compile_lighthouse_bin ;
+
+echo "Generate Lighthouse Wrapper" ;
+generate_lighthouse_wrapper ;
+
+echo "Building Applications Search Plugin"
 ./src/search_plugins/application_files/build_plugin_application_files.sh ; 
 

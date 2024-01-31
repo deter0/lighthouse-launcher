@@ -1,19 +1,26 @@
 #!/bin/sh
 #
 
-set -xe
+set -e ;
 
-SCRIPT=`dirname "$0"`
-CFLAGS="-O2 -Wall -Wextra -ggdb" ;
-INC="-I$SCRIPT/../../../include -I$SCRIPT../../common"
-COMMON_DEPS="$SCRIPT/../../common/trie.c $SCRIPT/../../common/slurp.c"
-cc -shared -fPIC $SCRIPT/plugin_application_files.c $SCRIPT/desktop_file_parser.c $INC $COMMON_DEPS $CFLAGS -o $SCRIPT/plugin_application_files.so -DSV_IMPLEMENTATION $SCRIPT/../../../include/sv/sv.h
+SCRIPT=`dirname "$0"` ;
+cd $SCRIPT ;
+ROOT_DIR="../../../" ;
 
-mv $SCRIPT/plugin_application_files.so $SCRIPT/../../../plugins
+CFLAGS="-O2 -Wall -Wextra -ggdb -DSV_IMPLEMENTATION" ;
+INC="-I$ROOT_DIR/include -I$ROOT_DIR/lib/raylib/src" ;
+DEPS="$ROOT_DIR/src/common/trie.c $ROOT_DIR/src/common/slurp.c -lm $ROOT_DIR/lib/raylib/libraylib.so" ;
 
-mkdir -p $SCRIPT/../../../test_out
+SRC="./plugin_application_files.c $ROOT_DIR/src/common/trie.c $ROOT_DIR/src/common/slurp.c ./desktop_file_parser.c" ;
 
-ls $SCRIPT/../../../include
+cc -o plugin_application_files.so -shared -fPIC $SRC $CFLAGS $INC $COMMON_DEPS $ROOT_DIR/include/sv/sv.h ;
 
-cc -DPLUGIN_APPLICATION_FILES_TEST $SCRIPT/plugin_application_files.c $SCRIPT/desktop_file_parser.c $INC $COMMON_DEPS $CFLAGS -o $SCRIPT/../../../test_out/plugin_application_files_test -lm
+mv ./plugin_application_files.so $ROOT_DIR/plugins
+
+if [ "$1" = "-t" ]; then
+  mkdir -p $ROOT_DIR/test_out
+
+  cc -DPLUGIN_APPLICATION_FILES_TEST plugin_application_files.c desktop_file_parser.c $INC $COMMON_DEPS $CFLAGS -o $ROOT_DIR/test_out/plugin_application_files_test -lm
+fi
+
 
