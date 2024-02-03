@@ -242,20 +242,15 @@ int main(void) {
 		}
 
 		default_ui_provider.ui_draw_user_input_field(search_buffer);
-		default_ui_provider.ui_draw_entry(NULL, 0);
+		default_ui_provider.ui_draw_entry(NULL, NULL, NULL, 0);
 
-		struct SearchPlugin *last_plugin = current_results_count > 0 ? current_results[0]->plugin : NULL;
 		for (size_t i = 0; i < current_results_count; i++) {
 			if (i == 0) {
 				selected_result = current_results[i];
-				default_ui_provider.ui_draw_entry(current_results[i]->name, true);
+				assert(current_results[i]->plugin && current_results[i]->name);
+				default_ui_provider.ui_draw_entry(current_results[i]->name, current_results[i]->plugin->plugin_metadata.plugin_display_name, NULL, true);
 			} else {
-				default_ui_provider.ui_draw_entry(current_results[i]->name, false);
-			}
-
-			if (i == current_results_count - 1 || (size_t)current_results[i]->plugin != (size_t)last_plugin) {
-				last_plugin = current_results[i]->plugin;
-				default_ui_provider.ui_draw_entry_group(last_plugin->plugin_metadata.plugin_display_name);
+				default_ui_provider.ui_draw_entry(current_results[i]->name, current_results[i]->plugin->plugin_metadata.plugin_display_name, NULL, false);
 			}
 		}
 

@@ -7,7 +7,7 @@
 typedef bool (*ui_init_t)(void);
 typedef Color (*ui_get_background_color_t)(void);
 typedef void (*ui_draw_user_input_field_t)(const char *input_text);
-typedef void (*ui_draw_entry_t)(const char *entry_name, bool highlight);
+typedef void (*ui_draw_entry_t)(const char *entry_name, const char *source, Texture2D *icon, bool highlight);
 typedef void (*ui_draw_entry_group_t)(const char *entry_group_name);
 
 typedef struct {

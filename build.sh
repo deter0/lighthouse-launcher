@@ -50,3 +50,6 @@ generate_lighthouse_wrapper ;
 echo "Building Applications Search Plugin"
 ./src/search_plugins/application_files/build_plugin_application_files.sh ; 
 
+echo "Building Binaries Search Plugin"
+./src/search_plugins/binaries/build_binaries.sh ; 
+
