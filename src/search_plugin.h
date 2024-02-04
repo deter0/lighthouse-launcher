@@ -10,6 +10,7 @@ typedef struct SearchPluginResult {
 		float score; // 0 -> 1
 		struct SearchPlugin *plugin; // Internal use
 		size_t results_count; // Length of results determined by first element
+		const char *icon_path;
 } SearchPluginResult;
 
 typedef struct SearchPluginMetadata {
