@@ -12,9 +12,9 @@ else
     echo "Raylib build" ;
 fi
 
-CFLAGS="-O1 -Wall -Wextra -ggdb" ;
+CFLAGS="-O3 -Wall -Wextra -ggdb" ;
 INCLUDE="-I./include/  -I./lib/raylib/src" ;
-FILES="./src/main.c" ;
+FILES="./src/main.c ./src/image_cache.c" ;
 LIBS="-lm $RAYLIB_FILE -ldl" ;
 
 echo "COMPILING CFLAGS: '$CFLAGS'" ;

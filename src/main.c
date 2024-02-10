@@ -18,6 +18,7 @@
 #include "sv/sv.h"
 
 #include "ui_provider.h"
+#include "image_cache.h"
 #include "search_plugin.h"
 
 #define WINDOW_WIDTH 600
@@ -131,7 +132,7 @@ void load_search_plugins_from_dir(const char *directory_path) {
 
 static void search_buffer_backspace(bool ctrl);
 
-int search_results_sort_cmp(void *aa, void *bb) {
+int search_results_sort_cmp(const void *aa, const void *bb) {
 	SearchPluginResult *a = (SearchPluginResult*)aa;
 	SearchPluginResult *b = (SearchPluginResult*)bb;
 
@@ -183,6 +184,8 @@ int main(void) {
 	SearchPluginResult *selected_result = NULL;
 	SearchPluginResult *garbage = NULL;
 
+	ImageCache icon_cache = create_image_cache();
+
 	while (!WindowShouldClose() && !quit) {
 		if (IsKeyReleased(KEY_ESCAPE)) {
 			CloseWindow();	
@@ -227,9 +230,9 @@ int main(void) {
 
 				SearchPluginResult *results = plugin->search_plugin_query(search_buffer);
 				for (size_t i = 0; i < results->results_count; i++) {
+					results[i].plugin = plugin;
 					if (current_results_count < CURRENT_RESULTS_MAX) {
 						current_results[current_results_count++] = &results[i];
-						results[i].plugin = plugin;
 					} else {
 						break;
 					}
@@ -238,20 +241,26 @@ int main(void) {
 				garbage = results;
 			}
 
-			qsort(*current_results, current_results_count, sizeof(SearchPluginResult), search_results_sort_cmp);
+			if (current_results_count > 1)
+				qsort(*current_results, current_results_count, sizeof(SearchPluginResult), search_results_sort_cmp);
 		}
 
 		default_ui_provider.ui_draw_user_input_field(search_buffer);
 		default_ui_provider.ui_draw_entry(NULL, NULL, NULL, 0);
 
 		for (size_t i = 0; i < current_results_count; i++) {
-			if (i == 0) {
-				selected_result = current_results[i];
-				assert(current_results[i]->plugin && current_results[i]->name);
-				default_ui_provider.ui_draw_entry(current_results[i]->name, current_results[i]->plugin->plugin_metadata.plugin_display_name, NULL, true);
-			} else {
-				default_ui_provider.ui_draw_entry(current_results[i]->name, current_results[i]->plugin->plugin_metadata.plugin_display_name, NULL, false);
+			Texture2D *icon = NULL;
+			if (strlen(current_results[i]->icon_path)>0 && *current_results[i]->icon_path != '!') {
+				icon = image_cache_get_if_not_put(&icon_cache, current_results[i]->icon_path, 28, 28);
 			}
+			if (i == 0) selected_result = current_results[i];
+			
+			assert(current_results[i]->plugin && current_results[i]->name);
+
+			// printf("Name: %s\n", current_results[i]->name);
+			// printf("Plugin: %s\n", current_results[i]->plugin->plugin_metadata.plugin_display_name);
+			
+			default_ui_provider.ui_draw_entry(current_results[i]->name, current_results[i]->plugin->plugin_metadata.plugin_display_name, icon, i == 0);
 		}
 
 		EndDrawing();

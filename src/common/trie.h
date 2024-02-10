@@ -23,7 +23,6 @@ struct TrieNode {
 
 typedef struct {
   char word[MAX_WORD_LEN];
-  int depth;
   void *user_ptr;
 } TrieWord;
 
@@ -34,5 +33,5 @@ typedef struct {
 
 TrieNode *trie_alloc_node(void);
 void trie_push_text(TrieNode *root, const char *text, void *user_ptr);
-void trie_search(TrieNode *root, const char *text, WordPool *search_results);
+void trie_search(TrieNode *root, const char *text, WordPool *search_results, int max_words);
 

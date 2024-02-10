@@ -12,6 +12,7 @@
 
 #include "../../common/trie.h"
 #include "../../common/slurp.h"
+#include "../../common/icon_finder.h"
 
 #include "./desktop_file_parser.h"
 
@@ -184,28 +185,10 @@ SearchPluginResult *search_plugin_query(const char *query) {
 	}
 
 	WordPool trie_search_result = { 0 };
-
-  // TrieWord current_selected_word = trie_search_result.words[selected_entry_index];
-  // assert(current_selected_word.user_ptr != NULL);
-
-  // LighthouseDesktopEntry *selected_entry = (LighthouseDesktopEntry*)current_selected_word.user_ptr;
-  // printf("Opening: `%s`, Command: `%s`\n", selected_entry->name, selected_entry->exec);
-
-  // int status = execute_desktop_file(selected_entry);
-  // printf("Executed program stripped of arguments, status: %d.\n", status);
-  
-  trie_search(app_name_search_trie, query_lower, &trie_search_result);
+  trie_search(app_name_search_trie, query_lower, &trie_search_result, 10);
 
   SearchPluginResult *plugin_results = calloc(trie_search_result.words_count, sizeof(*plugin_results));
 
-	int max_depth = 1;
-	for (size_t i = 0; i < trie_search_result.words_count; i++) {
-		int word_depth = trie_search_result.words[i].depth;
-		if (word_depth > max_depth) {
-			max_depth = word_depth;
-		}
-	}
-  
   for (size_t i = 0; i < trie_search_result.words_count; i++) {
     SearchPluginResult *result = &plugin_results[i];
 
@@ -228,6 +211,23 @@ SearchPluginResult *search_plugin_query(const char *query) {
     LighthouseDesktopEntry *entry = (LighthouseDesktopEntry*)(result->user_ptr);
     assert(entry != NULL);
     memcpy(result->name, entry->name, MAX_SMALL_STRING_LEN);
+
+		if (*entry->icon_path_cache == '!') {
+		} else if (strlen(entry->icon_path_cache) > 0) {
+			memcpy(result->icon_path, entry->icon_path_cache, MAX_PATH_LEN); 
+		} else {
+			bool icon_find_status = find_icon(entry->icon, 0, "hicolor", result->icon_path, sizeof(result->icon_path));
+
+			if (icon_find_status == false) {
+				icon_find_status = find_icon(entry->icon, 32, "hicolor", result->icon_path, sizeof(result->icon_path));
+			}
+			
+			if (icon_find_status == true) {
+				memcpy(entry->icon_path_cache, result->icon_path, MAX_PATH_LEN); 
+			} else {
+				*entry->icon_path_cache = '!'; // Icon miss
+			}
+		}
   }
 	plugin_results[0].results_count = trie_search_result.words_count;
 

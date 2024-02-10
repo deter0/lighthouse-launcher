@@ -4,13 +4,17 @@
 
 #include "./common/trie.h"
 
+#ifndef MAX_PATH_LEN
+#define MAX_PATH_LEN (2048)
+#endif
+
 typedef struct SearchPluginResult {
 		char name[MAX_SMALL_STRING_LEN];
 		void *user_ptr;
 		float score; // 0 -> 1
 		struct SearchPlugin *plugin; // Internal use
 		size_t results_count; // Length of results determined by first element
-		const char *icon_path;
+		char icon_path[MAX_PATH_LEN];
 } SearchPluginResult;
 
 typedef struct SearchPluginMetadata {

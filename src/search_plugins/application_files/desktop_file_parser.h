@@ -2,6 +2,10 @@
 
 #include "../../common/trie.h"
 
+#ifndef MAX_PATH_LEN
+#define MAX_PATH_LEN (2048)
+#endif
+
 #define MAX_GROUPS_PER_FILE 32
 #define MAX_ENTRIES_PER_GROUP 128
 #define MAX_GROUP_NAME_LEN 128
@@ -14,6 +18,8 @@ typedef struct {
   char icon[MAX_SMALL_STRING_LEN];
   char type[MAX_SMALL_STRING_LEN];
   char exec[MAX_SMALL_STRING_LEN];
+
+  char icon_path_cache[MAX_PATH_LEN];
 } LighthouseDesktopEntry;
 
 typedef enum ValueType { DF_VALUE_NONE, DF_VALUE_INT, DF_VALUE_FLOAT, DF_VALUE_STRING_L, DF_VALUE_STRING_S, DF_VALUE_BOOL }  ValueType;

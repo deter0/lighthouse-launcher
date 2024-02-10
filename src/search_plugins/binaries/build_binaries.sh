@@ -14,7 +14,7 @@ DEPS="" ;
 SRC="./binaries.c" ;
 
 cc -o plugin_binaries.so -shared -fPIC $SRC $CFLAGS $INC $DEPS ;
-mv ./plugin_binaries.so $ROOT_DIR/plugins
+# mv ./plugin_binaries.so $ROOT_DIR/plugins
 
 
 

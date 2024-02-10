@@ -11,7 +11,7 @@ CFLAGS="-O2 -Wall -Wextra -ggdb -DSV_IMPLEMENTATION" ;
 INC="-I$ROOT_DIR/include -I$ROOT_DIR/lib/raylib/src" ;
 DEPS="$ROOT_DIR/src/common/trie.c $ROOT_DIR/src/common/slurp.c -lm $ROOT_DIR/lib/raylib/libraylib.so" ;
 
-SRC="./plugin_application_files.c $ROOT_DIR/src/common/trie.c $ROOT_DIR/src/common/slurp.c ./desktop_file_parser.c" ;
+SRC="./plugin_application_files.c $ROOT_DIR/src/common/trie.c $ROOT_DIR/src/common/slurp.c ./desktop_file_parser.c $ROOT_DIR/src/common/icon_finder.c" ;
 
 cc -o plugin_application_files.so -shared -fPIC $SRC $CFLAGS $INC $COMMON_DEPS $ROOT_DIR/include/sv/sv.h ;
 

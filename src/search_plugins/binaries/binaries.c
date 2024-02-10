@@ -18,22 +18,23 @@ SearchPluginMetadata search_plugin_init(void) {
 }
 
 SearchPluginResult test = {
-  .name = "BINARY!",
+  .name = "Example plugin",
   .user_ptr = NULL,
   .score = 1.f,
   .plugin = NULL,
   .results_count = 1
 };
 
-void* memdup(const void* mem, size_t size) { 
+void* memdup(void* mem, size_t size) { 
    void* out = malloc(size);
 
-   if(out != NULL)
+   if (out != NULL)
        memcpy(out, mem, size);
 
    return out;
 }
 
 SearchPluginResult *search_plugin_query(const char *query) {
+  (void)query;
   return memdup(&test, sizeof(test));
 }

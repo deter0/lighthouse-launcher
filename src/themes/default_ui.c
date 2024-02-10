@@ -59,6 +59,8 @@ void ui_draw_entry(const char *entry_name, const char *source, Texture2D *icon, 
 
     if (!icon) {
       DrawTexture(missing_icon, padding*2, y, WHITE);
+    } else {
+      DrawTexture(*icon, padding*2+2, y+2, WHITE);
     }
 
     DrawTextEx(font, source, (Vector2){padding*4 + GetRenderWidth()/2 + icon_size, (float)y}, text_size, 0.f, GRAY);
