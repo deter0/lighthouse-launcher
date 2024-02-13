@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../common/trie.h"
+#include "trie.h"
 
 #ifndef MAX_PATH_LEN
 #define MAX_PATH_LEN (2048)
@@ -46,6 +46,9 @@ typedef struct {
   DesktopFileGroup groups[MAX_GROUPS_PER_FILE];
   size_t groups_count;
 } DesktopFile;
+
+DesktopFile parse_desktop_file(const char *file_contents_c_str);
+void delete_desktop_file(DesktopFile *file);
 
 LighthouseDesktopEntry get_desktop_file_info(const char *file_path);
 LighthouseDesktopEntry get_parse_desktop_file_contents_info(const char *file_contents_c_str);

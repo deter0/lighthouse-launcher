@@ -1,14 +1,36 @@
 #pragma once
 
-#define MAX_PATH_LEN (2048)
-typedef const char* String;
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
-// #define ICON_FINDER_DEBUG
+typedef struct {
+  int size;
+  int scale;
+  bool scalable;
+} IconSize;
 
-// 0 for scalable
-bool find_icon(const char *icon_name, int icon_size, const char *user_theme, char *icon_path, size_t icon_path_max);
+typedef struct {
+  bool exists;
 
-bool find_icon_helper(String icon_name, int icon_size, String theme, char *icon_path, size_t icon_path_max);
-bool lookup_icon(String icon_name, int icon_size, String theme_name, char *icon_path, size_t icon_path_max);
+  char path[PATH_MAX];
+  IconSize size;
+} Icon;
 
+typedef struct File File;
+struct File {
+  bool invalid;
+  bool is_heap;
+  
+  char name[NAME_MAX];
+  char containing_path[PATH_MAX];
+
+  bool is_folder;
+  bool is_folder_loaded;
+  File *children;
+  size_t children_count;
+  size_t children_alloc;
+
+  struct File *parent;
+};
 

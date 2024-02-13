@@ -7,7 +7,7 @@
 
 #include "sv/sv.h"
 
-#include "../../common/slurp.h"
+#include "slurp.h"
 
 #include "desktop_file_parser.h"
 
@@ -24,7 +24,7 @@ void delete_desktop_file(DesktopFile *file) {
   }
 }
 
-static DesktopFile parse_desktop_file(const char *file_contents_c_str) {
+DesktopFile parse_desktop_file(const char *file_contents_c_str) {
   String_View file_contents = sv_from_cstr(file_contents_c_str);
   String_View line = sv_chop_by_delim(&file_contents, '\n');
   

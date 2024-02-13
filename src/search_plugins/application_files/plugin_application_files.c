@@ -14,7 +14,7 @@
 #include "../../common/slurp.h"
 #include "../../common/icon_finder.h"
 
-#include "./desktop_file_parser.h"
+#include "../../common/desktop_file_parser.h"
 
 // Lighthouse Desktop File Search Plugin
 // Jan 26, 2024                   deter0
@@ -212,22 +212,22 @@ SearchPluginResult *search_plugin_query(const char *query) {
     assert(entry != NULL);
     memcpy(result->name, entry->name, MAX_SMALL_STRING_LEN);
 
-		if (*entry->icon_path_cache == '!') {
-		} else if (strlen(entry->icon_path_cache) > 0) {
-			memcpy(result->icon_path, entry->icon_path_cache, MAX_PATH_LEN); 
-		} else {
-			bool icon_find_status = find_icon(entry->icon, 0, "hicolor", result->icon_path, sizeof(result->icon_path));
+		// if (*entry->icon_path_cache == '!') {
+		// } else if (strlen(entry->icon_path_cache) > 0) {
+		// 	memcpy(result->icon_path, entry->icon_path_cache, MAX_PATH_LEN); 
+		// } else {
+		// 	bool icon_find_status = find_icon(entry->icon, 0, "hicolor", result->icon_path, sizeof(result->icon_path));
 
-			if (icon_find_status == false) {
-				icon_find_status = find_icon(entry->icon, 32, "hicolor", result->icon_path, sizeof(result->icon_path));
-			}
+		// 	if (icon_find_status == false) {
+		// 		icon_find_status = find_icon(entry->icon, 32, "hicolor", result->icon_path, sizeof(result->icon_path));
+		// 	}
 			
-			if (icon_find_status == true) {
-				memcpy(entry->icon_path_cache, result->icon_path, MAX_PATH_LEN); 
-			} else {
-				*entry->icon_path_cache = '!'; // Icon miss
-			}
-		}
+		// 	if (icon_find_status == true) {
+		// 		memcpy(entry->icon_path_cache, result->icon_path, MAX_PATH_LEN); 
+		// 	} else {
+		// 		*entry->icon_path_cache = '!'; // Icon miss
+		// 	}
+		// }
   }
 	plugin_results[0].results_count = trie_search_result.words_count;
 
